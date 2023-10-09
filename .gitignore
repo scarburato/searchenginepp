@@ -1,0 +1,7 @@
+### Intellij ####
+.idea/
+
+### VS Code ###
+.vscode/
+
+# @TODO add compiler's stuff
