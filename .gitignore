@@ -8,3 +8,4 @@ data/*
 .vscode/
 
 # @TODO add compiler's stuff
+cmake-build-debug
