@@ -1,27 +1,35 @@
 #include <iostream>
-#include <iterator>
 #include <numeric>
-#include <sstream>
 #include <vector>
-#include <list>
+#include <libstemmer.h>
+#include <cassert>
+#include <cstring>
 
 #include "codes/variable_blocks.hpp"
 
 using namespace std;
 
 int main() {
-	const std::vector<uint64_t > test0_data{3, 67822l};
-	const std::vector<uint8_t> real{0b00000011, 0b01101110, 0b10010001, 0b10000100};
+	//auto stemmer_names = sb_stemmer_list();
+	//for(auto stemmer_name = stemmer_names; *stemmer_name != nullptr; ++stemmer_name)
+	//	std::cout << *stemmer_name << '\n';
 
-	codes::VariableBlocksEncoder encoder(test0_data.begin(), test0_data.end());
+	auto stemmer = sb_stemmer_new("english" , nullptr);
 
-	for(auto byte : encoder)
-		std::cout << (uint32_t )(byte) << ' ';
-	std::cout << std::endl;
+	assert(stemmer != nullptr);
 
-	for(auto byte : real)
-		std::cout << (uint32_t )(byte) << ' ';
-	std::cout << std::endl;
+	const char* words[] = {"cared","university","fairly","easily","singing",
+					  "sings","sung","singer","sportingly", "è", "bourgeois",
+					  "bourgeoisie", "PROFESSOR", "ᣡᣡᣨ"
+	};
 
+	for(auto it = words; it != words + sizeof(words); ++it)
+	{
+		const auto stemmed_word = sb_stemmer_stem(stemmer, reinterpret_cast<const sb_symbol *>(*it), std::strlen(*it));
+
+		std::cout << stemmed_word << '\n';
+	}
+
+	sb_stemmer_delete(stemmer);
 	return 0;
 }

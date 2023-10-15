@@ -6,5 +6,6 @@ add_subdirectory(googletest)
 # 'test1.cpp test2.cpp' are source files with tests
 add_executable(Google_Tests_run
         test_codes_variable_blocks.cpp)
-target_link_libraries(Google_Tests_run gtest gtest_main)
+
+target_link_libraries(Google_Tests_run PRIVATE "${STEMMER_LIB}" gtest gtest_main)
 
