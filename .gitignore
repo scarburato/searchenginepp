@@ -9,3 +9,4 @@ data/*
 
 # @TODO add compiler's stuff
 cmake-build-debug
+build
