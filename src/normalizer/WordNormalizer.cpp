@@ -18,34 +18,41 @@ WordNormalizer::~WordNormalizer()
 	sb_stemmer_delete(stemmer);
 }
 
-std::vector<std::string> WordNormalizer::normalize(std::string str)
+WordNormalizer::TokenStream WordNormalizer::normalize(std::string str)
 {
-	std::vector<std::string> tokens;
-
 	punctuation.GlobalReplace(" ", &str);
+	return TokenStream(str, *this);
+}
 
-	std::istringstream iss(str);
-	std::string token;
+WordNormalizer::TokenStream::TokenStream(const std::string &str, WordNormalizer &wn) :
+		stem_token(nullptr), isstream(str), wn(wn)
+{
 
+}
 
-	while (iss >> token)
+const std::string& WordNormalizer::TokenStream::next()
+{
+	while (isstream >> token)
 	{
 		std::transform(token.begin(), token.end(), token.begin(), [](char c) { return std::tolower(c); });
 
 #ifdef SEARCHENGINECPP_STEMMER_ENABLE
-		if (token == "and") // @TODO stopword fr fr no cap
+		if (token.empty() or token == "and") // @TODO stopword fr fr no cap
 			continue;
 
-		token = std::string((char *) sb_stemmer_stem(
-				stemmer,
+		stem_token = (const char*) sb_stemmer_stem(
+				wn.stemmer,
 				reinterpret_cast<const sb_symbol *>(token.c_str()),
-				token.size()));
+				token.size());
+
+		token = stem_token;
 #endif
 
-		tokens.push_back(token);
+		return token;
 	}
 
-
-	return tokens;
+	token = "";
+	return token;
 }
+
 }

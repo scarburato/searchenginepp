@@ -8,7 +8,7 @@ TEST(WordNormalizerTest, test0)
 					  "Up above the world you fly, "
 					  "Like a tea-tray in the sky.";
 
-	std::vector<std::string> str_result = {
+	std::vector<std::string> expected_result = {
 #ifdef SEARCHENGINECPP_STEMMER_ENABLE
 			"twinkl", "twinkl", "littl", "bat", "wonder", "world", "like", "tea", "trai", "sky"
 #else
@@ -19,6 +19,17 @@ TEST(WordNormalizerTest, test0)
 	};
 
 	normalizer::WordNormalizer wn;
+	auto norm_tokens = wn.normalize(str);
+	std::vector<std::string> result;
 
-	ASSERT_EQ(wn.normalize(str), str_result);
+	while(true)
+	{
+		const auto& token = norm_tokens.next();
+		if(token.empty())
+			break;
+
+		result.push_back(token);
+	}
+
+	ASSERT_EQ(result, expected_result);
 }
