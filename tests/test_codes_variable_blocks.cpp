@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "../src/codes/variable_blocks.hpp"
+#include "codes/variable_blocks.hpp"
 
 TEST(VariableCode, decode)
 {

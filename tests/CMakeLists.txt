@@ -5,7 +5,10 @@ add_subdirectory(googletest)
 # 'Google_Tests_run' is the target name
 # 'test1.cpp test2.cpp' are source files with tests
 add_executable(Google_Tests_run
-        test_codes_variable_blocks.cpp)
-
-target_link_libraries(Google_Tests_run PRIVATE "${STEMMER_LIB}" gtest gtest_main)
+        test_codes_variable_blocks.cpp
+        test_normalizer.cpp
+)
+target_link_libraries(Google_Tests_run PRIVATE gtest_main libprogetto)
+target_include_directories(Google_Tests_run PUBLIC "simdutf/include")
+target_include_directories(Google_Tests_run PUBLIC "../src")
 

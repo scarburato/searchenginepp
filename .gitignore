@@ -1,5 +1,6 @@
 ### dati ###
-data/*
+data/
+schifo.cpp
 
 ### Intellij ####
 .idea/

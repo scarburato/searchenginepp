@@ -8,36 +8,12 @@
 #include <unicode/unistr.h>
 
 #include "codes/variable_blocks.hpp"
+#include "normalizer/utf8_utils.hpp"
 #include <simdutf.h>
 
 using namespace std;
 
-size_t fix_utf8_enconded_latin1(uint8_t *buffer, size_t size)
-{
-	// If it's utf8-econded latin1, then, since latin1's maximum value is 0xff, it'll fit on 2 utf8 bytes
-	// If it's not the case, the heuristic fails
-	if (size < 2 or ((buffer[0] & 0b11100000) != 0b11000000 and (buffer[1] & 0b11000000) != 0b10000000))
-		return size;
-
-	buffer[0] = ((buffer[0] & 0b00011111) << 6) | (buffer[1] & 0b00111111);
-
-	//memmove(buffer + 1, buffer + 2, size - 1);
-	for(size_t i = 1; i < size; ++i)
-		buffer[i] = buffer[i+1];
-
-	return size - 1;
-}
-
-size_t ms_marco_utf8_enconded_latin1_heuristc(uint8_t *buffer, size_t size)
-{
-	for(size_t i = 0; i < size - 1; ++i)
-		if(buffer[i] == 0xc2 and ((buffer[i+1] >= 0x80 and buffer[i+1] <= 0xa0) or buffer[i+1] == 0xad))
-			return i*2;
-
-	return size;
-}
-
-char *strs[] = {
+char const *const strs[] = {
 		R"(AntonÃ­n DvorÃ¡k)",
 		"good luck finding that cohort of â\u0080\u009CnaÃ¯veâ\u0080\u009D participants",
 		"Home My MBTIÂ® Personality Type Â® Basics.",
@@ -59,12 +35,12 @@ int main()
 
 		size_t size = std::strlen(str);
 
-		if(ms_marco_utf8_enconded_latin1_heuristc(reinterpret_cast<uint8_t *>(str), size) == size)
+		if(normalizer::ms_marco_utf8_enconded_latin1_heuristc(reinterpret_cast<uint8_t *>(str), size) == size)
 			continue;
 
 		std::cout << "latin1!\n";
-		for(size_t i = 0; i < size; ++i)
-			size = fix_utf8_enconded_latin1(reinterpret_cast<uint8_t *>(str + i), size - i);
+
+		normalizer::fix_utf8_encoded_latin1(str, size);
 
 		std::cout << str << std::endl;
 	}
