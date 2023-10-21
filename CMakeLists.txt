@@ -36,6 +36,7 @@ add_library(libprogetto
         src/normalizer/utf8_utils.cpp
         src/normalizer/utf8_utils.hpp
         src/index/types.hpp
+        src/codes/unary.hpp
 )
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${PCRE_LIB}" simdutf)
 
