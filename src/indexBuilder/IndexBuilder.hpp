@@ -5,7 +5,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iterator>
 #include "../index/types.hpp"
+#include "../codes/variable_blocks.hpp"
 
 namespace index
 {
@@ -25,14 +27,11 @@ class IndexBuilder
     void add(std::string term, docid_t id, freq_t occurences)
     {
         // If the term is not in the index I create the vector
-        if(term_to_inverted_index.find(term) == term_to_inverted_index.end())
-        {
+        if(not term_to_inverted_index.contains(term))
             term_to_inverted_index[term] = std::vector<std::pair<docid_t, freq_t>>();
-        }
 
         // Insert the <docID,freq> pair inside the vector associated to the term
         term_to_inverted_index[term].push_back(std::make_pair(id, occurences));
-
     }
 
     void write_to_disk(std::ostream& inverted_indices_teletype, std::ostream& lexicon_teletype);
