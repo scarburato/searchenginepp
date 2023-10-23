@@ -71,9 +71,10 @@ public:
 
 		uint8_t operator*()
 		{
-			if(!working)
+			if(not working)
 				buffer = *current_it;
 
+			// If first byte encoded (working is false), put most sign. bit to 0
 			return (working ? 0b10000000 : 0) | (buffer & 0b01111111);
 		}
 
@@ -87,6 +88,7 @@ public:
 				return *this;
 			}
 
+			// empty buffer, we need to load another one
 			++current_it;
 			working = false;
 			buffer = *current_it;
