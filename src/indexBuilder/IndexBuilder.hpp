@@ -24,14 +24,10 @@ class IndexBuilder
     * Function that adds a frequency of a term associated to a documentID
     * It is assumed to recieve strictly increasing docIDs 
     */
-    void add(std::string term, docid_t id, freq_t occurences)
+    void add(const std::string& term, docid_t id, freq_t occurrences)
     {
-        // If the term is not in the index I create the vector
-        if(not term_to_inverted_index.contains(term))
-            term_to_inverted_index[term] = std::vector<std::pair<docid_t, freq_t>>();
-
         // Insert the <docID,freq> pair inside the vector associated to the term
-        term_to_inverted_index[term].push_back(std::make_pair(id, occurences));
+        term_to_inverted_index[term].push_back(std::make_pair(id, occurrences));
     }
 
     void write_to_disk(std::ostream& inverted_indices_teletype, std::ostream& lexicon_teletype);
