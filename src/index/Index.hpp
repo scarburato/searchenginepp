@@ -12,7 +12,7 @@ namespace sindex
 struct DocumentInfo
 {
 	docno_t docno;
-	uint32_t lenght;
+	doclen_t lenght;
 };
 
 /**
