@@ -13,7 +13,7 @@ class VariableBlocksDecoder : public CodeDecoder<EncondedDataIterator, T>
 public:
 	struct DecodeIterator: public CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>
 	{
-		using DecodeIteratorBase = CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>::DecodeIteratorBase;
+		using DecodeIteratorBase = typename CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>::DecodeIteratorBase;
 		using DecodeIteratorBase::current_encoded_it;
 		using DecodeIteratorBase::end_it;
 
@@ -102,7 +102,7 @@ public:
 	private:
 		RawDataIterator current_it;
 		bool working = false;
-		RawDataIterator::value_type buffer;
+		typename RawDataIterator::value_type buffer;
 	};
 
 	EncodeIterator begin() const {return EncodeIterator(this->start);}

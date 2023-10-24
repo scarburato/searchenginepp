@@ -38,6 +38,8 @@ add_library(libprogetto
         src/index/types.hpp
         src/index/Index.cpp
         src/index/Index.hpp
+        src/indexBuilder/IndexBuilder.hpp
+        src/indexBuilder/IndexBuilder.cpp
 )
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${PCRE_LIB}" simdutf)
 
@@ -47,8 +49,7 @@ add_executable(prova src/prova_main.cpp)
 target_link_libraries(prova PRIVATE libprogetto)
 target_include_directories(prova PUBLIC "simdutf/include")
 
-add_executable(builder src/builder.cpp
-)
+add_executable(builder src/builder.cpp)
 target_link_libraries(builder PRIVATE libprogetto)
 target_include_directories(builder PUBLIC "simdutf/include")
 
