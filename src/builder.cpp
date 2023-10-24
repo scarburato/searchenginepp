@@ -4,10 +4,10 @@
 #include <fstream>
 #include <sstream>
 #include "index/types.hpp"
+#include "normalizer/WordNormalizer.hpp"
+#include "indexBuilder/IndexBuilder.hpp"
 
-using namespace index;
-
-typedef std::pair<docno_t, std::string> doc_tuple_t;
+typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 constexpr size_t CHUNK_SIZE = 50'000; // number of documents to read
 
@@ -17,11 +17,25 @@ constexpr size_t CHUNK_SIZE = 50'000; // number of documents to read
  * <pid>\t<text>\n
  * where <pid> is the docno and <text> is the document content
  */
-static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t >> chunk, docid_t base_id) {
+static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id) {
+	normalizer::WordNormalizer wn;
+	sindex::IndexBuilder indexBuilder;
+
     for (const auto &line : *chunk) {
-		// esempio stampa docno e text
-		asm("nop");
-		//std::cout << "docno: " << line.first << ", text: " << line.second << std::endl;
+		std::unordered_map<std::string, unsigned> term_freqs;
+		auto terms = wn.normalize(line.second);
+
+		while(true)
+		{
+			const auto& term = terms.next();
+			if(term.empty())
+				break;
+
+			term_freqs[term]++;
+		}
+
+		for(const auto& [term, freq] : term_freqs)
+			indexBuilder.add(term, line.first, freq);
     }
 }
 
