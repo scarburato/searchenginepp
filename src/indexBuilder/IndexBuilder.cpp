@@ -4,7 +4,7 @@
 #include <ranges>
 #include <iostream>
 
-namespace index 
+namespace sindex
 {
 
 // Function that writes to disk the inverted index

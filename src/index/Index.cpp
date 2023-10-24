@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include "Index.hpp"
 
-namespace index
+namespace sindex
 {
 
 /**

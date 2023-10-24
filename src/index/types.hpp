@@ -5,7 +5,7 @@
 #include <map>
 #include "../codes/variable_blocks.hpp"
 
-namespace index
+namespace sindex
 {
 typedef uint32_t docid_t;
 typedef uint32_t docno_t;

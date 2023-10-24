@@ -6,7 +6,7 @@
 #include "../codes/variable_blocks.hpp"
 #include "types.hpp"
 
-namespace index
+namespace sindex
 {
 
 struct DocumentInfo

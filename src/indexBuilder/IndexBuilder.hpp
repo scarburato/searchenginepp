@@ -9,7 +9,7 @@
 #include "../index/types.hpp"
 #include "../codes/variable_blocks.hpp"
 
-namespace index
+namespace sindex
 {
 
 class IndexBuilder
