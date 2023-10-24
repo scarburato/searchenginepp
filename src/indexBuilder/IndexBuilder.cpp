@@ -20,39 +20,36 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
     // Write to the teletype the posting list and its relative entry in the lexicon
     for(const auto& [term, array] : inverted_index)
     {
-        // Iterate through all docids
+        // Iterate through all docids and save the docids and the frequencies
         auto iter_docid = array | std::ranges::views::transform([](std::pair<docid_t, freq_t> p) {return p.first;});
+        auto iter_freq = array | std::ranges::views::transform([](std::pair<docid_t, freq_t> p) {return p.second;});
 
         // Encode the posting lists of the relative term using the variable bytes algorithm 
         codes::VariableBlocksEncoder doc_encoder(iter_docid.begin(), iter_docid.end());
+        codes::VariableBlocksEncoder freq_encoder(iter_freq.begin(), iter_freq.end());
+        //@TODO use unary
 
-        // Save starting offset of the posting list
+        // Save starting offset of the docids
         const auto docid_start_offset = docid_teletype.tellp();
 
         // Save docid posting list
         for(uint8_t byte : doc_encoder)
             docid_teletype.put(byte);
 
-        // Save ending offset of the posting list
+        // Save ending offset of the docids
         const auto docid_end_offset = docid_teletype.tellp();
 
-        // Iterate through all docids
-        auto iter_freq = array | std::ranges::views::transform([](std::pair<docid_t, freq_t> p) {return p.second;});
-
-        // Encode the posting lists of the relative term using the variable bytes algorithm 
-        codes::VariableBlocksEncoder freq_encoder(iter_freq.begin(), iter_freq.end());
-
-        // Save starting offset of the posting list
+        // Save starting offset of the frequencies
         const auto freq_start_offset = freq_teletype.tellp();
 
-        // Save freq posting list
+        // Save freq frequencies
         for(uint8_t byte : freq_encoder)
             freq_teletype.put(byte);
 
-        // Save starting offset of the posting list
+        // Save starting offset of the frequencies
         const auto freq_end_offset = freq_teletype.tellp();
             
-        // @TODO write offset in the lexicon
+        // Write the lexicon in the correspondent stream
         lexicon_teletype.write(term.c_str(), term.size());
         lexicon_teletype.write((char*)&docid_start_offset, sizeof(docid_start_offset));
         lexicon_teletype.write((char*)&docid_end_offset, sizeof(docid_end_offset));
