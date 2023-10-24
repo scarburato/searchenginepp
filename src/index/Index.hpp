@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "../codes/variable_blocks.hpp"
 #include "types.hpp"
@@ -21,7 +21,7 @@ struct DocumentInfo
  */
 class Index{
 private:
-	std::map<std::string, std::pair<size_t, size_t>> term_to_inverted_index;
+	std::unordered_map<std::string, std::pair<size_t, size_t>> term_to_inverted_index;
 
 	uint8_t *inverted_indices;
 	size_t inverted_indices_length;

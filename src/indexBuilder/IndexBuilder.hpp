@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <utility>
@@ -16,7 +16,7 @@ class IndexBuilder
 {
     private:
 
-    std::map<std::string, std::vector<std::pair<docid_t, freq_t>>> term_to_inverted_index;
+    std::unordered_map<std::string, std::vector<std::pair<docid_t, freq_t>>> term_to_inverted_index;
 
     public:
 
