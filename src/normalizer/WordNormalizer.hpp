@@ -4,6 +4,7 @@
 #include <pcrecpp.h>
 #include <vector>
 #include <optional>
+#include "PunctuationRemover.hpp"
 
 namespace normalizer
 {
@@ -11,7 +12,7 @@ class WordNormalizer
 {
 private:
 	sb_stemmer *stemmer;
-	pcrecpp::RE punctuation;
+	//pcrecpp::RE punctuation;
 
 public:
 	WordNormalizer();

@@ -6,8 +6,8 @@
 namespace normalizer
 {
 WordNormalizer::WordNormalizer() :
-		stemmer(sb_stemmer_new("english", nullptr)),
-		punctuation(R"(,|\.|:|;|-|_|'|"|!|\n)", pcrecpp::UTF8())
+		stemmer(sb_stemmer_new("english", nullptr))
+		//punctuation(R"([,\.:;\-_\'\"\!\n\t#%&\*\/\?@\\\(\)\[\]{}\|\=\^$£])", pcrecpp::UTF8())
 {
 	if (stemmer == nullptr)
 		abort();
@@ -20,7 +20,8 @@ WordNormalizer::~WordNormalizer()
 
 WordNormalizer::TokenStream WordNormalizer::normalize(std::string str)
 {
-	punctuation.GlobalReplace(" ", &str);
+	//punctuation.GlobalReplace(" ", &str);
+	remove_punctuation(str);
 	return TokenStream(str, *this);
 }
 

@@ -1,7 +1,21 @@
 #include "gtest/gtest.h"
 #include "normalizer/WordNormalizer.hpp"
+#include "normalizer/PunctuationRemover.hpp"
 
-TEST(WordNormalizerTest, test0)
+TEST(PunctuationRemover, test0)
+{
+	const std::string original = "Ei fu. Siccome immobile,, dato il mortal sospiro ¶ paragrafo ⸻ inciso lungo ⸻ fine.";
+	const std::string expected = "Ei fu  Siccome immobile   dato il mortal sospiro    paragrafo     inciso lungo     fine ";
+	std::string str = original;
+
+	normalizer::remove_punctuation(str);
+
+	ASSERT_EQ(original.size(), str.size());
+	ASSERT_EQ(expected, str);
+}
+
+
+TEST(WordNormalizerTest, test1)
 {
 	std::string str = "Twinkle, twinkle, little bat! "
 					  "How I wonder what you're at! "

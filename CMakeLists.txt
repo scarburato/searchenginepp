@@ -16,8 +16,11 @@ endif()
 # Snowball stemmer
 find_library(STEMMER_LIB stemmer)
 
-# Intel Hyperscan
+# PCRE regexe
 find_library(PCRE_LIB pcrecpp)
+
+# Intel Hyperscan regex
+find_library(HYPERSCAN_LIB hs)
 
 # ICU
 find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
@@ -41,8 +44,11 @@ add_library(libprogetto
         src/indexBuilder/IndexBuilder.hpp
         src/indexBuilder/IndexBuilder.cpp
         src/codes/unary.hpp
+        src/normalizer/PunctuationRemover.cpp
+        src/normalizer/PunctuationRemover.hpp
 )
-target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${PCRE_LIB}" simdutf)
+
+target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}" "${PCRE_LIB}" simdutf)
 
 add_subdirectory(tests)
 
