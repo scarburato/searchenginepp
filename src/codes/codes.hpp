@@ -42,7 +42,7 @@ protected:
 		friend bool operator!= (const DecodeIteratorBase& a, const DecodeIteratorBase& b) { return a.current_encoded_it != b.current_encoded_it; };
 
 		EncondedDataIterator current_encoded_it;
-		const EncondedDataIterator& end_it;
+		const EncondedDataIterator end_it;
 		explicit DecodeIteratorBase(EncondedDataIterator pos, const EncondedDataIterator& end_it): current_encoded_it(pos), end_it(end_it) {}
 	};
 };

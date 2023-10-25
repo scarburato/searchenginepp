@@ -15,7 +15,7 @@ public:
 	 * @param start Where to start reading
 	 * @param end where to stop
 	 */
-	UnaryDecoder(EncondedDataIterator start, const EncondedDataIterator &end) :
+	explicit UnaryDecoder(EncondedDataIterator start, const EncondedDataIterator &end) :
 			CodeDecoder<EncondedDataIterator, T>(start, end)
 	{}
 
@@ -46,7 +46,7 @@ public:
 		}
 
 	private:
-		T current_datum_decoded;
+		T current_datum_decoded = 0;
 		uint8_t bit_mask = 0b00000001;
 
 		/**
@@ -89,7 +89,7 @@ public:
 	struct EncodeIterator: public CodeEncoder<RawDataIterator>::EncodeIterator
 	{
 		explicit EncodeIterator(RawDataIterator current_it, const UnaryEncoder& encoder, bool eos = false):
-			current_it(current_it), encoder(encoder), eos(eos)
+			encoder(encoder), current_it(current_it), eos(eos)
 		{
 			if (not eos)
 				build_out_buffer();
@@ -121,11 +121,11 @@ public:
 		friend bool operator!= (const EncodeIterator& a, const EncodeIterator& b) { return not operator==(a,b); };
 
 	private:
+		const UnaryEncoder& encoder;
 		RawDataIterator current_it;
 		uint64_t buffer = 0;
 		uint8_t out_buffer = 0;
 		bool eos = false;
-		const UnaryEncoder& encoder;
 
 		void build_out_buffer()
 		{
