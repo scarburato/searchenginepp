@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "normalizer/WordNormalizer.hpp"
 #include "normalizer/PunctuationRemover.hpp"
+#include "normalizer/utf8_utils.hpp"
 
 TEST(PunctuationRemover, test0)
 {
@@ -46,4 +47,19 @@ TEST(WordNormalizerTest, test1)
 	}
 
 	ASSERT_EQ(result, expected_result);
+}
+
+TEST(MSMarcoFixer, test2)
+{
+	const std::string original = "AntonÃ­n DvorÃ¡k (1841â1904) Antonin Dvorak was a son of butcher,";
+	const std::string expected = "Antonín Dvorák (1841–1904) Antonin Dvorak was a son of butcher,";
+	std::string str = original;
+
+	auto corruption_pos = normalizer::ms_marco_utf8_enconded_latin1_heuristc(str.c_str(), str.size());
+
+	ASSERT_LT(corruption_pos, str.size());
+
+	normalizer::fix_utf8_encoded_latin1(str);
+
+	ASSERT_EQ(str, expected);
 }

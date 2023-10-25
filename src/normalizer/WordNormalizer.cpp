@@ -1,8 +1,10 @@
 #include <cstdlib>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 #include "WordNormalizer.hpp"
 #include "stop_words.hpp"
+#include "utf8_utils.hpp"
 
 namespace normalizer
 {
@@ -21,7 +23,12 @@ WordNormalizer::~WordNormalizer()
 
 WordNormalizer::TokenStream WordNormalizer::normalize(std::string str)
 {
-	//punctuation.GlobalReplace(" ", &str);
+#ifdef FIX_MSMARCO_LATIN1
+	// Fix enconding error
+	if(ms_marco_utf8_enconded_latin1_heuristc(str) < str.size())
+		fix_utf8_encoded_latin1(str);
+#endif
+
 	remove_punctuation(str);
 	return TokenStream(str, *this);
 }

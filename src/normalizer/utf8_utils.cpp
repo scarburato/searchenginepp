@@ -27,7 +27,7 @@ size_t fix_utf8_encoded_latin1(char *str, size_t size)
 	return size;
 }
 
-size_t ms_marco_utf8_enconded_latin1_heuristc(uint8_t *buffer, size_t size)
+size_t ms_marco_utf8_enconded_latin1_heuristc(const uint8_t *buffer, size_t size)
 {
 	for(size_t i = 0; i < size - 1; ++i)
 		if(buffer[i] == 0xc2 and ((buffer[i+1] >= 0x80 and buffer[i+1] <= 0xa0) or buffer[i+1] == 0xad))
