@@ -24,7 +24,7 @@ TEST(WordNormalizerTest, test1)
 
 	std::vector<std::string> expected_result = {
 #ifdef SEARCHENGINECPP_STEMMER_ENABLE
-			"twinkl", "twinkl", "littl", "bat", "wonder", "world", "like", "tea", "trai", "sky"
+			"twinkl", "twinkl", "littl", "bat", "wonder", "world", "like", "tea", "tray", "sky"
 #else
 			"twinkle", "twinkle", "little", "bat", "how", "i", "wonder", "what", "you", "re",
 			"at", "up", "above", "the", "world", "you", "fly", "like", "a", "tea", "tray",
