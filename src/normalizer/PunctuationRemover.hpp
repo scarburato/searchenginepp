@@ -5,7 +5,7 @@ namespace normalizer
 {
 
 /** Removes punctuation from a string and replaces it with ' '*/
-unsigned remove_punctuation(std::string& str);
+void remove_punctuation(std::string& str);
 
 } // normalizer
 

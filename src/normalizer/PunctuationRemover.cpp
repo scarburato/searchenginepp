@@ -15,9 +15,9 @@ static inline std::string build_regex(const std::vector<std::string>& symbols);
 
 // see https://en.wikipedia.org/wiki/Template:Punctuation_marks_in_Unicode
 static const std::vector<std::string> pun_1_byte = {
-		",", "\\.", ":", ";", "\\-", "_", "\\'", "\\\"", "\\!", "\\n", "\\t",
+		",", "\\.", ":", ";", "\\-", "_", "\\\"", "\\!", "\\n", "\\t",
 		"#", "%", "&", "\\*", "\\/", "\\?", "@", "\\\\", "\\(", "\\)", "\\[",
-		"\\]", "{", "}", "\\|", "\\=", "\\^", "$"
+		"\\]", "{", "}", "\\|", "\\=", "\\^", "$", "\\'"
 };
 
 static const std::vector<std::string> pun_2_byte = {
@@ -72,7 +72,7 @@ static inline std::string build_regex(const std::vector<std::string>& symbols)
 
 Hyperscan::Hyperscan()
 {
-	std::cout << "Init hyperscan db...\n";
+	std::cout << "Init hyperscan db..." << std::endl;
 
 	hs_compile_error_t *compile_err;
 
@@ -119,13 +119,13 @@ Scratch::Scratch():
 	scratch(nullptr)
 {
 	assert(hyperscan.common_scratch != nullptr);
-	std::cout << "building scratch...\n";
+	std::cout << "building scratch..." << std::endl;
 
 	// For each thread, clone the thread_scratch
 	auto res = hs_clone_scratch(hyperscan.common_scratch, &scratch);
 	if(res != HS_SUCCESS)
 	{
-		std::cout << "ERROR: Unable to allocate common thread_scratch\n";
+		std::cout << "ERROR: Unable to allocate common thread_scratch" << std::endl;
 		abort();
 	}
 }
@@ -139,7 +139,7 @@ Scratch::~Scratch()
 static int remove_punctuation_handler (
 		unsigned int id,
 		unsigned long long from, unsigned long long to,
-		unsigned int flags, void *context)
+		[[maybe_unused]] unsigned int flags, void *context)
 {
 	auto *str = (std::string*)context;
 
@@ -154,10 +154,8 @@ static int remove_punctuation_handler (
 	return 0;
 }
 
-unsigned remove_punctuation(std::string &str)
+void remove_punctuation(std::string &str)
 {
-	unsigned occ = 0;
-
 	auto ret = hs_scan(
 			hyperscan.hs_pun_db,
 			str.c_str(), str.size(),
@@ -168,8 +166,6 @@ unsigned remove_punctuation(std::string &str)
 		std::cout << "ERROR: while processing string `" << str << "\'\n";
 		abort();
 	}
-
-	return 0;
 }
 
 } // normalizer
