@@ -41,7 +41,7 @@ public:
     * @param docid index of the document
     * @param doc struct containing the doc number and its length
     */
-    void add_to_post(const docid_t docid, const DocumentInfo& doc)
+    void add_to_doc(const docid_t docid, const DocumentInfo& doc)
     {
         document_index[docid] = doc;
     }

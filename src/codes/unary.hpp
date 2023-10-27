@@ -22,7 +22,7 @@ public:
 
 	struct DecodeIterator : public CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>
 	{
-		using DecodeIteratorBase = CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>::DecodeIteratorBase;
+		using DecodeIteratorBase = typename CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>::DecodeIteratorBase;
 		using DecodeIteratorBase::current_encoded_it;
 		using DecodeIteratorBase::end_it;
 
