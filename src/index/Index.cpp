@@ -17,7 +17,7 @@ static std::pair<void*, size_t> mmap_helper(char const *const filename)
 	auto fd = open(filename, O_RDONLY);
 
 	// get file's size
-	struct stat st = {0};
+	struct stat st{};
 	auto ret_stat= stat(filename, &st);
 
 	if(ret_stat == -1)

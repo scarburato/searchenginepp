@@ -3,21 +3,29 @@ project(progetto)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast ")
 
 option(USE_STEMMER "Enable or disable Snowball's stemmer and stopword removal" ON)
+option(FIX_MSMARCO_LATIN1 "Enable or disable heuristic and encoding fix for certain wronly encoded docs in MSMARCO" OFF)
 
 if(USE_STEMMER)
     add_compile_definitions(SEARCHENGINECPP_STEMMER_ENABLE)
 endif()
 
+if(FIX_MSMARCO_LATIN1)
+    add_compile_definitions(FIX_MSMARCO_LATIN1)
+endif()
+
 # Snowball stemmer
 find_library(STEMMER_LIB stemmer)
 
-# Intel Hyperscan
+# PCRE regexe
 find_library(PCRE_LIB pcrecpp)
+
+# Intel Hyperscan regex
+find_library(HYPERSCAN_LIB hs)
 
 # ICU
 find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
@@ -40,8 +48,14 @@ add_library(libprogetto
         src/index/Index.hpp
         src/indexBuilder/IndexBuilder.hpp
         src/indexBuilder/IndexBuilder.cpp
+        src/codes/unary.hpp
+        src/normalizer/PunctuationRemover.cpp
+        src/normalizer/PunctuationRemover.hpp
+        src/normalizer/stop_words.cpp
+        src/normalizer/stop_words.hpp
 )
-target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${PCRE_LIB}" simdutf)
+
+target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}" "${PCRE_LIB}" simdutf)
 
 add_subdirectory(tests)
 

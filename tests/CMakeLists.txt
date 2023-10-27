@@ -7,6 +7,7 @@ add_subdirectory(googletest)
 add_executable(Google_Tests_run
         test_codes_variable_blocks.cpp
         test_normalizer.cpp
+        test_codes_unary.cpp
 )
 target_link_libraries(Google_Tests_run PRIVATE gtest_main libprogetto)
 target_include_directories(Google_Tests_run PUBLIC "simdutf/include")

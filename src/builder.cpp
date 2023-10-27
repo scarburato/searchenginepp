@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 #include "index/types.hpp"
 #include "normalizer/WordNormalizer.hpp"
 #include "indexBuilder/IndexBuilder.hpp"
@@ -42,6 +43,8 @@ static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 int main()
 {
+	using namespace std::chrono_literals;
+
     std::string pid_str, doc;
     size_t line_count = 1;
 
@@ -49,6 +52,7 @@ int main()
 	std::cin.tie(nullptr);
 
 	auto chunk = std::make_unique<std::vector<doc_tuple_t>>();
+	auto start_time = std::chrono::steady_clock::now();
 
     while (std::getline(std::cin, pid_str, '\t') and std::getline(std::cin, doc)) {
         chunk->push_back({std::stoull(pid_str), doc});
@@ -59,6 +63,9 @@ int main()
         }
 		line_count++;
 	}
+
+	auto stop_time = std::chrono::steady_clock::now();
+	std::cout << "Processed " << line_count << " documents in " << (stop_time - start_time) / 1s << "s\n";
 
     // Process the remaining lines which are less than CHUNK_SIZE
     if (not chunk->empty()) {
