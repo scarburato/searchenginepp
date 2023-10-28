@@ -15,6 +15,14 @@ TEST(IndexBuilder, write_to_disk)
 	builder.add_to_post("banano", 2, 2);
 	builder.add_to_post("banano", 3, 1);
 
+	builder.add_to_doc(1, {.docno = 0xcafe, .lenght = 1});
+	builder.add_to_doc(2, {.docno = 0xbabe, .lenght = 2});
+	builder.add_to_doc(3, {.docno = 0xbeaf, .lenght = 1});
+
+	builder.add_to_post("banano", 1, 1);
+	builder.add_to_post("banano", 2, 2);
+	builder.add_to_post("banano", 3, 1);
+
     // Create a stringsteam for every teletype
     std::ostringstream docid_teletype_stream;
     std::ostringstream freq_teletype_stream;
