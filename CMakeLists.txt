@@ -3,7 +3,7 @@ project(progetto)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fno-exceptions")
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast ")
 
