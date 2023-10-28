@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cassert>
 #include <iterator>
 #include "../index/types.hpp"
 #include "../index/Index.hpp"
@@ -16,12 +17,15 @@ namespace sindex
 class IndexBuilder
 {
 private:
+	const docid_t base_docid;
+	const docid_t n_docs;
 
     std::unordered_map<std::string, std::vector<std::pair<docid_t, freq_t>>> inverted_index;
-
-    std::unordered_map<docid_t, DocumentInfo> document_index;
+    std::vector<DocumentInfo> document_index;
 
 public:
+	explicit IndexBuilder(docid_t n_docs, docid_t base = 0):
+		base_docid(base), n_docs(n_docs), document_index(n_docs) {}
 
     /**
     * Function that adds a frequency of a term associated to a documentID
@@ -41,12 +45,13 @@ public:
     * @param docid index of the document
     * @param doc struct containing the doc number and its length
     */
-    void add_to_doc(const docid_t docid, const DocumentInfo& doc)
+    void add_to_doc(const docid_t docid, const DocumentInfo doc)
     {
-        document_index[docid] = doc;
+		assert(docid >= base_docid);
+        document_index[docid - base_docid] = doc;
     }
 
-    void write_to_disk(std::ostream&, std::ostream&, std::ostream&, std::ostream&);
+    void write_to_disk(std::ostream& docid_teletype, std::ostream& freq_teletype, std::ostream& lexicon_teletype, std::ostream& document_index_teletype);
 };
 
 }

@@ -28,9 +28,13 @@ struct LexiconInfo
 */
 void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& freq_teletype, std::ostream& lexicon_teletype, std::ostream& document_index_teletype)
 {
+	// Write down all terms to disk, first we write the number of buckets necessary for the hashmap
+	uint64_t buckets = inverted_index.bucket_count();
+	lexicon_teletype.write((char*)&buckets, sizeof(uint64_t));
+	for(const auto& [term, array] : inverted_index)
+		lexicon_teletype.write(term.c_str(), term.size());
 
-    // Create a temporary map to save the informations about the lexicon
-    std::unordered_map<std::string, LexiconInfo> lexicon;
+	lexicon_teletype.flush();
 
     // Write to the teletype the posting list and its relative entry in the lexicon
     for(const auto& [term, array] : inverted_index)
@@ -41,16 +45,21 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
         // Encode the posting lists of the relative term using the variable bytes algorithm 
         codes::VariableBlocksEncoder doc_encoder(iter_docid.begin(), iter_docid.end());
 
-        // Save starting offset of the docids
-        lexicon[term].docid_start_offset = docid_teletype.tellp();
+        // Write starting offset of the docids
+		const uint64_t start_pos = docid_teletype.tellp();
+		lexicon_teletype.write((char*)&start_pos, sizeof(uint64_t));
 
         // Save docid posting list
         for(uint8_t byte : doc_encoder)
             docid_teletype.put(byte);
 
         // Save ending offset of the docids
-        lexicon[term].docid_end_offset = docid_teletype.tellp();
+		const uint64_t end_pos = docid_teletype.tellp();
+		lexicon_teletype.write((char*)&end_pos, sizeof(uint64_t));
     }
+
+	// Write to disk all the id postings
+	docid_teletype.flush();
 
     for(const auto& [term, array] : inverted_index)
     {
@@ -60,34 +69,33 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
         // Encode the posting lists of the relative term using the unary algorithm 
         codes::UnaryEncoder freq_encoder(iter_freq.begin(), iter_freq.end());
 
-        // Save starting offset of the frequencies
-        lexicon[term].freq_start_offset = freq_teletype.tellp();
+		// Write starting offset of the docids
+		const uint64_t start_pos = freq_teletype.tellp();
+		lexicon_teletype.write((char*)&start_pos, sizeof(uint64_t));
 
         // Save frequencies
         for(uint8_t byte : freq_encoder)
             freq_teletype.put(byte);
 
-        // Save starting offset of the frequencies
-        lexicon[term].freq_end_offset = freq_teletype.tellp();
+		// Save ending offset of the docids
+		const uint64_t end_pos = freq_teletype.tellp();
+		lexicon_teletype.write((char*)&end_pos, sizeof(uint64_t));
     }
 
-    // Write term offset informations stored inside the temporary lexicon map
-    for(const auto& [term, info] : lexicon)
-    {
-        // Write the lexicon in the correspondent stream
-        lexicon_teletype.write(term.c_str(), term.size());
-        lexicon_teletype.write((char*)&info.docid_start_offset, sizeof(uint64_t));
-        lexicon_teletype.write((char*)&info.docid_end_offset, sizeof(uint64_t));
-        lexicon_teletype.write((char*)&info.freq_start_offset, sizeof(uint64_t));
-        lexicon_teletype.write((char*)&info.freq_end_offset, sizeof(uint64_t));
-    }
+	// flush freqs 'n lexicon
+	freq_teletype.flush();
+	lexicon_teletype.flush();
 
-    // Document index part
+    // Document index part, first we write the base
+	document_index_teletype.write((char*)&base_docid, sizeof(docid_t));
     for(const auto& [docid, document] : document_index)
     {
         document_index_teletype.write((char*)&docid, sizeof(docid));
         document_index_teletype.write((char*)&document, sizeof(DocumentInfo));
     }
+
+	// final flush
+	document_index_teletype.flush();
 }
 
 }
