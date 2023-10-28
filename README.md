@@ -16,7 +16,7 @@ To ensure the program works on Ubuntu, make sure you have the following dependen
 
 ```bash
 sudo apt-get update
-sudo apt-get install g++
+sudo apt install build-essential cmake libstemmer-dev libhyperscan-dev libpcrecpp-dev
 ```
 
 ## Building and Running the Program
@@ -24,16 +24,14 @@ sudo apt-get install g++
 Navigate to the project directory and use the following commands:
 
 ```bash
-g++ -o output_file main.cpp
-./output_file
+mkdir build
+cmake ..
+make -j8
 ```
 
 
 ## Additional Notes
 
-
-
-## License
 
 
 
