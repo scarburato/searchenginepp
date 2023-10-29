@@ -29,6 +29,11 @@ cmake ..
 make -j8
 ```
 
+To read the collection efficiently, we use the following command:
+
+```bash
+tar -xOzf ../data/collection.tar.gz collection.tsv | ./builder
+```
 
 ## Additional Notes
 
