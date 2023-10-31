@@ -23,7 +23,11 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 	uint64_t buckets = inverted_index.bucket_count();
 	lexicon_teletype.write((char*)&buckets, sizeof(uint64_t));
 	for(const auto& [term, array] : inverted_index)
+    {
 		lexicon_teletype.write(term.c_str(), term.size());
+        const freq_t ni = array.size();
+        lexicon_teletype.write((char *)&ni, sizeof(freq_t));
+    }
 
 	lexicon_teletype.flush();
 

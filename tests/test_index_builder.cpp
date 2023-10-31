@@ -31,12 +31,6 @@ TEST(IndexBuilder, write_to_disk)
 
     builder.write_to_disk(docid_teletype_stream, freq_teletype_stream, lexicon_teletype_stream, document_index_teletype_stream);
 
-    // Saving data into strings
-    std::string docid_teletype_data = docid_teletype_stream.str();
-    std::string freq_teletype_data = freq_teletype_stream.str();
-    std::string lexicon_teletype_data = lexicon_teletype_stream.str();
-    std::string document_index_teletype_data = document_index_teletype_stream.str();
-
 	ASSERT_EQ(docid_teletype_stream.str(), "\x1\x2\x3");
 	ASSERT_EQ(freq_teletype_stream.str(), "\x2"); //0b00000010 = 0x02
 	// The first 8 bytes is the number of buckets, we don't care about it
