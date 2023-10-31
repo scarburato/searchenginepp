@@ -8,7 +8,7 @@
 namespace sindex
 {
 typedef uint32_t docid_t;
-typedef uint32_t docno_t;
+typedef std::string docno_t;
 typedef uint32_t doclen_t;
 typedef size_t freq_t;
 

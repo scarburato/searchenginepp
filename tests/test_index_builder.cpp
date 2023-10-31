@@ -7,17 +7,9 @@ TEST(IndexBuilder, write_to_disk)
 {
     sindex::IndexBuilder builder(3, 1);
 
-	builder.add_to_doc(1, {.docno = 0xcafe, .lenght = 1});
-	builder.add_to_doc(2, {.docno = 0xbabe, .lenght = 2});
-	builder.add_to_doc(3, {.docno = 0xbeaf, .lenght = 1});
-
-	builder.add_to_post("banano", 1, 1);
-	builder.add_to_post("banano", 2, 2);
-	builder.add_to_post("banano", 3, 1);
-
-	builder.add_to_doc(1, {.docno = 0xcafe, .lenght = 1});
-	builder.add_to_doc(2, {.docno = 0xbabe, .lenght = 2});
-	builder.add_to_doc(3, {.docno = 0xbeaf, .lenght = 1});
+	builder.add_to_doc(1, {.docno = "caffe", .lenght = 1});
+	builder.add_to_doc(2, {.docno = "babe", .lenght = 2});
+	builder.add_to_doc(3, {.docno = "beef", .lenght = 1});
 
 	builder.add_to_post("banano", 1, 1);
 	builder.add_to_post("banano", 2, 2);
