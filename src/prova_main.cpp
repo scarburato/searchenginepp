@@ -9,7 +9,6 @@
 
 #include "codes/variable_blocks.hpp"
 #include "normalizer/utf8_utils.hpp"
-#include <simdutf.h>
 
 using namespace std;
 
