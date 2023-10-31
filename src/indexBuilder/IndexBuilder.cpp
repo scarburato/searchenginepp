@@ -10,15 +10,6 @@
 namespace sindex
 {
 
-// Struct containing the offset of the inverted index associated with a term
-struct LexiconInfo
-{
-	uint64_t docid_start_offset;
-    uint64_t docid_end_offset;
-    uint64_t freq_start_offset;
-    uint64_t freq_end_offset;
-};
-
 /**
 * Function that writes to disk the inverted index
 * @param docid_teletype stream in which the docids are saved
