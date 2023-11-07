@@ -24,7 +24,7 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 	lexicon_teletype.write((char*)&buckets, sizeof(uint64_t));
 	for(const auto& [term, array] : inverted_index)
     {
-		lexicon_teletype.write(term.c_str(), term.size());
+		lexicon_teletype.write(term.c_str(), term.size() + 1);
         const freq_t ni = array.size();
         lexicon_teletype.write((char *)&ni, sizeof(freq_t));
     }
@@ -81,13 +81,26 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 	freq_teletype.flush();
 	lexicon_teletype.flush();
 
+	// We use this variable as a offsets to the string section of the document index
+	size_t current_string_offset = 0;
+
     // Document index part, first we write the base
 	document_index_teletype.write((char*)&base_docid, sizeof(docid_t));
-    for(const auto& [docid, document] : document_index)
+	for(size_t i = 0; i < document_index.size(); ++i)
     {
+		docid_t docid = base_docid + i;
+
+		// Write to disk
         document_index_teletype.write((char*)&docid, sizeof(docid));
-        document_index_teletype.write((char*)&document, sizeof(DocumentInfo));
+        document_index_teletype.write((char*)&current_string_offset, sizeof(size_t));
+
+		// Increase offset
+		current_string_offset += document_index[i].docno.size() + 1;
     }
+
+	// We write the strings' section
+	for(const auto& docinfo : document_index)
+		document_index_teletype.write(docinfo.docno.c_str(), docinfo.docno.size() + 1);
 
 	// final flush
 	document_index_teletype.flush();
