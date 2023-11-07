@@ -55,12 +55,9 @@ add_subdirectory(tests)
 
 add_executable(prova src/prova_main.cpp)
 target_link_libraries(prova PRIVATE libprogetto)
-target_include_directories(prova PUBLIC "simdutf/include")
 
 add_executable(builder src/builder.cpp)
 target_link_libraries(builder PRIVATE libprogetto)
-target_include_directories(builder PUBLIC "simdutf/include")
 
 add_executable(engine src/engine.cpp)
 target_link_libraries(engine PRIVATE libprogetto)
-target_include_directories(engine PUBLIC "simdutf/include")
