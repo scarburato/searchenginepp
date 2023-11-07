@@ -30,7 +30,7 @@ cmake -DCMAKE_BUILD_TYPE=Release -DFIX_MSMARCO_LATIN1=ON ..
 make -j8
 ```
 
-you should replace the `-j8` with the number of cores in your CPU
+you should replace the `-j8` flag with the number of cores in your CPU
 
 ### CMake options
 
