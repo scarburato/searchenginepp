@@ -31,7 +31,8 @@ static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	const auto start_time = std::chrono::steady_clock::now();
 
 	// Process all docs (lines) in a chunk
-    for (const auto &line : *chunk) {
+    for (const auto &line : *chunk)
+    {
 		// Extract all tokens and their freqs
 		std::unordered_map<std::string, unsigned> term_freqs;
 		auto terms = wn.normalize(line.second);
@@ -65,10 +66,10 @@ static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	if(not std::filesystem::exists(out_dir/base_name))
 		std::filesystem::create_directory(out_dir/base_name);
 
-	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids");
-	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs");
-	auto lexicon = std::ofstream(out_dir/base_name/"lexicon");
-	auto doc_index = std::ofstream(out_dir/base_name/"document_index");
+	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids", std::ios_base::binary);
+	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs", std::ios_base::binary);
+	auto lexicon = std::ofstream(out_dir/base_name/"lexicon", std::ios_base::binary);
+	auto doc_index = std::ofstream(out_dir/base_name/"document_index", std::ios_base::binary);
 
 	indexBuilder.write_to_disk(pl_docids, pl_freqs, lexicon, doc_index);
 
@@ -110,10 +111,12 @@ int main(int argc, char** argv)
 	const auto start_time = std::chrono::steady_clock::now();
 
 	// Iterate through all lines from STDIN
-    while (std::getline(std::cin, pid_str, '\t') and std::getline(std::cin, doc)) {
-        chunk->push_back({std::stoull(pid_str), doc});
+    while (std::getline(std::cin, pid_str, '\t') and std::getline(std::cin, doc))
+    {
+        chunk->push_back({pid_str, doc});
 
-        if (line_count % CHUNK_SIZE == 0) {
+        if (line_count % CHUNK_SIZE == 0)
+        {
             process_chunk(std::move(chunk), chunk_n * CHUNK_SIZE + 1, out_dir);
 			chunk_n += 1;
 
@@ -124,9 +127,8 @@ int main(int argc, char** argv)
 	}
 
     // Process the remaining lines which are less than CHUNK_SIZE
-    if (not chunk->empty()) {
-        process_chunk(std::move(chunk), chunk_n * CHUNK_SIZE + 1, out_dir);
-    }
+	if (not chunk->empty())
+		process_chunk(std::move(chunk), chunk_n * CHUNK_SIZE + 1, out_dir);
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << line_count << " documents in " << (stop_time - start_time) / 1.0s << "s\n";

@@ -7,17 +7,9 @@ TEST(IndexBuilder, write_to_disk)
 {
     sindex::IndexBuilder builder(3, 1);
 
-	builder.add_to_doc(1, {.docno = 0xcafe, .lenght = 1});
-	builder.add_to_doc(2, {.docno = 0xbabe, .lenght = 2});
-	builder.add_to_doc(3, {.docno = 0xbeaf, .lenght = 1});
-
-	builder.add_to_post("banano", 1, 1);
-	builder.add_to_post("banano", 2, 2);
-	builder.add_to_post("banano", 3, 1);
-
-	builder.add_to_doc(1, {.docno = 0xcafe, .lenght = 1});
-	builder.add_to_doc(2, {.docno = 0xbabe, .lenght = 2});
-	builder.add_to_doc(3, {.docno = 0xbeaf, .lenght = 1});
+	builder.add_to_doc(1, {.docno = "caffe", .lenght = 1});
+	builder.add_to_doc(2, {.docno = "babe", .lenght = 2});
+	builder.add_to_doc(3, {.docno = "beef", .lenght = 1});
 
 	builder.add_to_post("banano", 1, 1);
 	builder.add_to_post("banano", 2, 2);
@@ -30,12 +22,6 @@ TEST(IndexBuilder, write_to_disk)
     std::ostringstream document_index_teletype_stream;
 
     builder.write_to_disk(docid_teletype_stream, freq_teletype_stream, lexicon_teletype_stream, document_index_teletype_stream);
-
-    // Saving data into strings
-    std::string docid_teletype_data = docid_teletype_stream.str();
-    std::string freq_teletype_data = freq_teletype_stream.str();
-    std::string lexicon_teletype_data = lexicon_teletype_stream.str();
-    std::string document_index_teletype_data = document_index_teletype_stream.str();
 
 	ASSERT_EQ(docid_teletype_stream.str(), "\x1\x2\x3");
 	ASSERT_EQ(freq_teletype_stream.str(), "\x2"); //0b00000010 = 0x02

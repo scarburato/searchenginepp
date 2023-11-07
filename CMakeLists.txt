@@ -30,12 +30,6 @@ find_library(HYPERSCAN_LIB hs)
 # ICU
 find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
 
-# Lib for utf8 validation
-set(SIMDUTF_TESTS OFF)
-set(SIMDUTF_BENCHMARKS OFF)
-set(SIMDUTF_ICONV OFF)
-add_subdirectory(simdutf)
-
 add_library(libprogetto
         src/codes/codes.hpp
         src/codes/variable_blocks.hpp
@@ -55,7 +49,7 @@ add_library(libprogetto
         src/normalizer/stop_words.hpp
 )
 
-target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}" "${PCRE_LIB}" simdutf)
+target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}" "${PCRE_LIB}")
 
 add_subdirectory(tests)
 
