@@ -25,6 +25,7 @@ Navigate to the project directory and use the following commands:
 
 ```bash
 mkdir build
+cd build/
 cmake -DCMAKE_BUILD_TYPE=Release -DFIX_MSMARCO_LATIN1=ON ..
 make -j8
 ```
