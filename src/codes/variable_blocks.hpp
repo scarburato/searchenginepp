@@ -23,19 +23,29 @@ public:
 
 		void alignNext()
 		{
-			// Align iterator to a number begin
-			do
+			// Align iterator to the last byte of a number
+			while (current_encoded_it != end_it and *current_encoded_it & 0b10000000)
 				++current_encoded_it;
-			while (current_encoded_it != end_it and *current_encoded_it & 0b10000000);
+
+			// Move to the begin of a new number, if any
+			if(current_encoded_it != end_it)
+				++current_encoded_it;
 		}
 
 		void parseCurrent()
 		{
 			current_datum_decoded = 0;
 
+			// Save the next input offset
 			auto next_input = this->current_encoded_it;
-			for (unsigned i = 0; i < sizeof(uint64_t) and next_input != end_it and (i == 0 || *next_input & 0b10000000); i++, ++next_input)
-				current_datum_decoded |= (uint64_t) (*next_input & ~0b10000000) << 7 * i;
+
+			unsigned i = 0;
+
+			// Append the 7 useful bits to the number until I find the end byte or 
+			// until I reach the end of the iterator
+			do
+				current_datum_decoded |= (uint64_t) (*next_input & ~0b10000000) << 7 * i++;
+			while (next_input != end_it and *next_input++ & 0b10000000);
 		}
 
 	private:
@@ -74,8 +84,9 @@ public:
 			if(not working)
 				buffer = *current_it;
 
-			// If first byte encoded (working is false), put most sign. bit to 0
-			return (working ? 0b10000000 : 0) | (buffer & 0b01111111);
+			// If number is not representable in 7 bits put 1 in the most significant bit
+			// if not put 0
+			return (buffer > 0b01111111ul ? 0b10000000 : 0) | (buffer & 0b01111111);
 		}
 
 		EncodeIterator& operator++()

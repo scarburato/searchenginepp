@@ -3,7 +3,7 @@
 
 TEST(VariableCode, decode)
 {
-	const std::vector<uint8_t> test0_data{0b00000011, 0b01101110, 0b10010001, 0b10000100};
+	const std::vector<uint8_t> test0_data{0b00000011, 0b11101110, 0b10010001, 0b00000100};
 
 	codes::VariableBlocksDecoder decoder(test0_data.begin(), test0_data.end());
 
