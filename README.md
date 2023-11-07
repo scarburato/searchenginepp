@@ -41,6 +41,14 @@ There are two CMAKE options:
 
 ### Run tests
 
+Go in build/ directory and use the following command:
+
+```bash
+tests/Google_Tests_run
+```
+
+If all tests return RUN ON, it means all tests passed successfully.
+
 ## Run
 
 To read the collection efficiently, use the following command:
@@ -48,6 +56,10 @@ To read the collection efficiently, use the following command:
 ```bash
 tar -xOzf ../data/collection.tar.gz collection.tsv | ./builder
 ```
+
+The use of `tar` alongside UNIX's pipes, allows the system to decompress the collection
+in blocks, and keep in the input buffer of only the chunk that's being proccessed at the moment,
+thus removing the necessity to decompress the file separately and to load it in memory all at once.
 
 ## Additional Notes
 
