@@ -110,4 +110,46 @@ public:
 
 };
 
+struct VariableBytes
+{
+	uint8_t bytes[10] = {0};
+	unsigned short used_bytes = 0;
+
+	/**
+	 * Takes a number and compresses it using the Variable Bytes method
+	 * The compressed number is put in the variable `bytes[]`
+	 */
+	explicit inline VariableBytes(uint64_t number)
+	{
+		for(; number; number = number >> 7, ++used_bytes)
+			bytes[used_bytes] = (number & 0b01111111) | 0b10000000;
+
+		// Last byte terminator
+		if(used_bytes)
+			bytes[used_bytes - 1] &= 0b01111111;
+		else
+			used_bytes = 1;
+	}
+
+	/**
+	 * Parses a variable-length number and returns it uncompressed
+	 * @returns the parsed bytes and the number of bytes read
+	 */
+	static inline std::pair<uint64_t, unsigned> parse(uint8_t *bytes)
+	{
+		bool more = true;
+		unsigned i;
+		uint64_t number = 0;
+
+		// Parsing stuff
+		for(i = 0; i < 10 and more; ++i)
+		{
+			number |= (uint64_t)(bytes[i] & 0b01111111) << 7*i;
+			more = bytes[i] & 0b10000000;
+		}
+
+		return {number, i};
+	}
+};
+
 }
