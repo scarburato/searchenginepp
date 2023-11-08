@@ -61,9 +61,9 @@ inline size_t ms_marco_utf8_enconded_latin1_heuristc(const std::string& str)
  * @param pString
  * @return pString lower case
  */
-char *str_to_lwr_uft8_latin1(char *pString);
+void str_to_lwr_uft8_latin1(char *pString);
 
-inline char *str_to_lwr_uft8_latin1(std::string& str){
-	return str_to_lwr_uft8_latin1(str.data());
+inline void str_to_lwr_uft8_latin1(std::string& str){
+	str_to_lwr_uft8_latin1(str.data());
 }
 }

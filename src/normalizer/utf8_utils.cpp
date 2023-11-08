@@ -37,7 +37,7 @@ size_t ms_marco_utf8_enconded_latin1_heuristc(const uint8_t *buffer, size_t size
 }
 
 
-char *str_to_lwr_uft8_latin1(char *pString)
+void str_to_lwr_uft8_latin1(char *pString)
 {
 	char cExtChar = 0;
 	if (pString && *pString)
@@ -55,7 +55,6 @@ char *str_to_lwr_uft8_latin1(char *pString)
 			p++;
 		}
 	}
-	return pString;
 }
 
 }

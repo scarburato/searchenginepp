@@ -46,10 +46,9 @@ const std::string& WordNormalizer::TokenStream::next()
 	// If such option is disabled, we'll effectively read one token per function call
 	while (isstream >> token)
 	{
-		// @FIXME This stuff works only for ASCII ofc
 		// Make string lowercase
 #ifdef TEXT_FULL_LATIN1_CASE
-		token = str_to_lwr_uft8_latin1(token);
+		str_to_lwr_uft8_latin1(token);
 #else
 		std::transform(token.begin(), token.end(), token.begin(), [](char c) { return std::tolower(c); });
 #endif
