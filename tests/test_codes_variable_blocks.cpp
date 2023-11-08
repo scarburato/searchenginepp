@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <cstddef>
 #include "codes/variable_blocks.hpp"
 
 TEST(VariableCode, decode)
@@ -38,4 +39,19 @@ TEST(VariableCode, encode_decode)
 
 	for(size_t i = 0; i < data_to_encode.size(); i++)
 		ASSERT_EQ(data_to_encode[i], data_decoded[i]);
+}
+
+TEST(VariableCode, single_number)
+{
+	const auto a = codes::VariableBytes::parse(codes::VariableBytes(10).bytes);
+	ASSERT_EQ(a.first, 10);
+	ASSERT_EQ(a.second, 1);
+
+	const auto b = codes::VariableBytes::parse(codes::VariableBytes(1000).bytes);
+	ASSERT_EQ(b.first, 1000);
+	ASSERT_EQ(b.second, 2);
+
+	const auto c = codes::VariableBytes::parse(codes::VariableBytes(1000000).bytes);
+	ASSERT_EQ(c.first, 1000000);
+	ASSERT_EQ(c.second, 3);
 }
