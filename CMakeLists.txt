@@ -19,16 +19,12 @@ if(FIX_MSMARCO_LATIN1)
 endif()
 
 # Snowball stemmer
-find_library(STEMMER_LIB stemmer)
-
-# PCRE regexe
-find_library(PCRE_LIB pcrecpp)
-
-# Intel Hyperscan regex
-find_library(HYPERSCAN_LIB hs)
+find_library(STEMMER_LIB stemmer REQUIRED)
 
 # ICU
 find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
+
+find_library(HYPERSCAN_LIB hs REQUIRED)
 
 add_library(libprogetto
         src/codes/codes.hpp
@@ -49,18 +45,15 @@ add_library(libprogetto
         src/normalizer/stop_words.hpp
 )
 
-target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}" "${PCRE_LIB}")
+target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")
 
 add_subdirectory(tests)
 
 add_executable(prova src/prova_main.cpp)
 target_link_libraries(prova PRIVATE libprogetto)
-target_include_directories(prova PUBLIC "simdutf/include")
 
 add_executable(builder src/builder.cpp)
 target_link_libraries(builder PRIVATE libprogetto)
-target_include_directories(builder PUBLIC "simdutf/include")
 
 add_executable(engine src/engine.cpp)
 target_link_libraries(engine PRIVATE libprogetto)
-target_include_directories(engine PUBLIC "simdutf/include")

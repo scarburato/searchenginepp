@@ -1,11 +1,6 @@
 #include <iostream>
 #include <numeric>
-#include <vector>
-#include <libstemmer.h>
-#include <cassert>
 #include <cstring>
-#include <pcrecpp.h>
-#include <unicode/unistr.h>
 
 #include "codes/variable_blocks.hpp"
 #include "normalizer/utf8_utils.hpp"
