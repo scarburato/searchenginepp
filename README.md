@@ -19,6 +19,9 @@ sudo apt-get update
 sudo apt install build-essential cmake libstemmer-dev libhyperscan-dev libpcrecpp-dev
 ```
 
+If you're not building on an amd64 (x86) system you may have to install `vectorscan` in place of `hyperscan`, on Ubuntu
+the package to install should be named `libvectorscan-dev`.
+
 ## Build
 
 Navigate to the project directory and use the following commands:
@@ -47,7 +50,7 @@ Go in build/ directory and use the following command:
 tests/Google_Tests_run
 ```
 
-If all tests return RUN ON, it means all tests passed successfully.
+If all tests return RUN OK, it means all tests passed successfully.
 
 ## Run
 
