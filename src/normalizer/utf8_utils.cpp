@@ -36,4 +36,26 @@ size_t ms_marco_utf8_enconded_latin1_heuristc(const uint8_t *buffer, size_t size
 	return size;
 }
 
+
+char *str_to_lwr_uft8_latin1(char *pString)
+{
+	char cExtChar = 0;
+	if (pString && *pString)
+	{
+		unsigned char *p = (unsigned char*)pString;
+		while (*p)
+		{
+			if (((cExtChar && ((*p >= 0x80) && (*p <= 0xbf))) || ((!cExtChar) && (*p <= 0x7f)))
+			&& ((((*p & 0x7f) + cExtChar) >= 0x40) && (((*p & 0x7f) + cExtChar) <= 0x5f)))
+				*p += 0x20;
+			if (cExtChar)
+				cExtChar = 0;
+			else if (*p == 0xc3)
+				cExtChar = 0x40;
+			p++;
+		}
+	}
+	return pString;
+}
+
 }

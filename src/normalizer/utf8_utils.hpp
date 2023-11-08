@@ -54,5 +54,16 @@ inline size_t ms_marco_utf8_enconded_latin1_heuristc(const std::string& str)
 	return ms_marco_utf8_enconded_latin1_heuristc(str.c_str(), str.size());
 }
 
+/**
+ * That takes an unsigned char pointer pString as an argument and converts the string to lowercase.
+ * It also handle Latin-1 characters and UTF-8 encoding.
+ * @author: https://stackoverflow.com/revisions/53911303/1
+ * @param pString
+ * @return pString lower case
+ */
+char *str_to_lwr_uft8_latin1(char *pString);
 
+inline char *str_to_lwr_uft8_latin1(std::string& str){
+	return str_to_lwr_uft8_latin1(str.data());
+}
 }

@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast ")
 
 option(USE_STEMMER "Enable or disable Snowball's stemmer and stopword removal" ON)
 option(FIX_MSMARCO_LATIN1 "Enable or disable heuristic and encoding fix for certain wronly encoded docs in MSMARCO" OFF)
+option(TEXT_FULL_LATIN1_CASE "Enable or disable lower case `function str_to_lwr_uft8_latin1`. If it's disable we'll use std::tolower(c);" OFF)
 
 if(USE_STEMMER)
     add_compile_definitions(SEARCHENGINECPP_STEMMER_ENABLE)
@@ -16,6 +17,10 @@ endif()
 
 if(FIX_MSMARCO_LATIN1)
     add_compile_definitions(FIX_MSMARCO_LATIN1)
+endif()
+
+if(TEXT_FULL_LATIN1_CASE)
+    add_compile_definitions(TEXT_FULL_LATIN1_CASE)
 endif()
 
 # Snowball stemmer
