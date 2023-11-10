@@ -43,6 +43,7 @@ add_library(libprogetto
         src/normalizer/PunctuationRemover.hpp
         src/normalizer/stop_words.cpp
         src/normalizer/stop_words.hpp
+        src/meta.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")
