@@ -53,9 +53,10 @@ public:
         auto cFreqs = codes::VariableBytes(occurrences);
 
         // Insert the compressed representation of the docID and the frequency in the inverted index
-        inverted_index[term].docids.insert(inverted_index[term].docids.end(), cDocId.bytes, cDocId.bytes + cDocId.used_bytes);
-        inverted_index[term].freqs.insert(inverted_index[term].freqs.end(), cFreqs.bytes, cFreqs.bytes + cFreqs.used_bytes);
-        inverted_index[term].n_docs += 1;
+		auto& entry = inverted_index[term];
+		entry.docids.insert(entry.docids.end(), cDocId.bytes, cDocId.bytes + cDocId.used_bytes);
+		entry.freqs.insert(entry.freqs.end(), cFreqs.bytes, cFreqs.bytes + cFreqs.used_bytes);
+		entry.n_docs += 1;
     }
 
     /**
@@ -63,7 +64,7 @@ public:
     * @param docid index of the document
     * @param doc struct containing the doc number and its length
     */
-    void add_to_doc(const docid_t docid, const DocumentInfo doc)
+    void add_to_doc(const docid_t docid, const DocumentInfo& doc)
     {
 		assert(docid >= base_docid);
         document_index[docid - base_docid] = doc;
