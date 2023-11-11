@@ -23,19 +23,29 @@ public:
 
 		void alignNext()
 		{
-			// Align iterator to a number begin
-			do
+			// Align iterator to the last byte of a number
+			while (current_encoded_it != end_it and *current_encoded_it & 0b10000000)
 				++current_encoded_it;
-			while (current_encoded_it != end_it and *current_encoded_it & 0b10000000);
+
+			// Move to the begin of a new number, if any
+			if(current_encoded_it != end_it)
+				++current_encoded_it;
 		}
 
 		void parseCurrent()
 		{
 			current_datum_decoded = 0;
 
+			// Save the next input offset
 			auto next_input = this->current_encoded_it;
-			for (unsigned i = 0; i < sizeof(uint64_t) and next_input != end_it and (i == 0 || *next_input & 0b10000000); i++, ++next_input)
-				current_datum_decoded |= (uint64_t) (*next_input & ~0b10000000) << 7 * i;
+
+			unsigned i = 0;
+
+			// Append the 7 useful bits to the number until I find the end byte or 
+			// until I reach the end of the iterator
+			do
+				current_datum_decoded |= (uint64_t) (*next_input & ~0b10000000) << 7 * i++;
+			while (next_input != end_it and *next_input++ & 0b10000000);
 		}
 
 	private:
@@ -74,8 +84,9 @@ public:
 			if(not working)
 				buffer = *current_it;
 
-			// If first byte encoded (working is false), put most sign. bit to 0
-			return (working ? 0b10000000 : 0) | (buffer & 0b01111111);
+			// If number is not representable in 7 bits put 1 in the most significant bit
+			// if not put 0
+			return (buffer > 0b01111111ul ? 0b10000000 : 0) | (buffer & 0b01111111);
 		}
 
 		EncodeIterator& operator++()
@@ -108,6 +119,48 @@ public:
 	EncodeIterator begin() const {return EncodeIterator(this->start);}
 	EncodeIterator end() const {return EncodeIterator(this->stop);}
 
+};
+
+struct VariableBytes
+{
+	uint8_t bytes[10] = {0};
+	unsigned short used_bytes = 0;
+
+	/**
+	 * Takes a number and compresses it using the Variable Bytes method
+	 * The compressed number is put in the variable `bytes[]`
+	 */
+	explicit inline VariableBytes(uint64_t number)
+	{
+		for(; number; number = number >> 7, ++used_bytes)
+			bytes[used_bytes] = (number & 0b01111111) | 0b10000000;
+
+		// Last byte terminator
+		if(used_bytes)
+			bytes[used_bytes - 1] &= 0b01111111;
+		else
+			used_bytes = 1;
+	}
+
+	/**
+	 * Parses a variable-length number and returns it uncompressed
+	 * @returns the parsed bytes and the number of bytes read
+	 */
+	static inline std::pair<uint64_t, unsigned> parse(uint8_t *bytes)
+	{
+		bool more = true;
+		unsigned i;
+		uint64_t number = 0;
+
+		// Parsing stuff
+		for(i = 0; i < 10 and more; ++i)
+		{
+			number |= (uint64_t)(bytes[i] & 0b01111111) << 7*i;
+			more = bytes[i] & 0b10000000;
+		}
+
+		return {number, i};
+	}
 };
 
 }

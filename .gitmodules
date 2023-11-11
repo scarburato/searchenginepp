@@ -4,6 +4,3 @@
 [submodule "tests/googletest"]
 	path = tests/googletest
 	url = git@github.com:google/googletest.git
-[submodule "simdutf"]
-	path = simdutf
-	url = git@github.com:simdutf/simdutf.git

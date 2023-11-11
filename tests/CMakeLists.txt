@@ -11,6 +11,5 @@ add_executable(Google_Tests_run
         test_index_builder.cpp
 )
 target_link_libraries(Google_Tests_run PRIVATE gtest_main libprogetto)
-target_include_directories(Google_Tests_run PUBLIC "simdutf/include")
 target_include_directories(Google_Tests_run PUBLIC "../src")
 
