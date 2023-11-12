@@ -44,6 +44,8 @@ add_library(libprogetto
         src/normalizer/stop_words.cpp
         src/normalizer/stop_words.hpp
         src/meta.hpp
+        src/util/thread_pool.cpp
+        src/util/thread_pool.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")
