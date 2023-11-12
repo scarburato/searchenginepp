@@ -49,6 +49,7 @@ add_library(libprogetto
         src/normalizer/stop_words.cpp
         src/normalizer/stop_words.hpp
         src/meta.hpp
+        src/codes/diskmap/reader.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")
@@ -58,8 +59,7 @@ add_subdirectory(tests)
 add_executable(prova src/prova_main.cpp)
 target_link_libraries(prova PRIVATE libprogetto)
 
-add_executable(builder src/builder.cpp
-        src/codes/diskmap/reader.hpp)
+add_executable(builder src/builder.cpp)
 target_link_libraries(builder PRIVATE libprogetto)
 
 add_executable(engine src/engine.cpp)

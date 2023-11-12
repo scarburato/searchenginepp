@@ -12,7 +12,7 @@ namespace sindex
  * @param filename
  * @return
  */
-static std::pair<void*, size_t> mmap_helper(char const *const filename)
+std::pair<void*, size_t> mmap_helper(char const *const filename)
 {
 	auto fd = open(filename, O_RDONLY);
 

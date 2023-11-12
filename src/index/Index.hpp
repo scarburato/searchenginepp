@@ -15,6 +15,7 @@ struct DocumentInfo
 	doclen_t lenght;
 };
 
+std::pair<void*, size_t> mmap_helper(char const *const filename); // In this way it's visible to others who includes Index.hpp
 /**
  * This class represents the index and is used to access the documents'
  * information regarding the terms they contain and their frequencies.

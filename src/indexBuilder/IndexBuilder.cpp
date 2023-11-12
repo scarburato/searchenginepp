@@ -14,7 +14,7 @@ namespace sindex
 * Function that writes to disk the inverted index
 * @param docid_teletype stream in which the docids are saved
 * @param freq_teletype stream in which the frequencies are saved
-* @param lexicon_teletype stream in which the lexicon is saved
+* @param lexicon_teletype stream in which the data is saved
 * @param document_index_teletype stream in which the document index is saved
 */
 void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& freq_teletype, std::ostream& lexicon_teletype, std::ostream& document_index_teletype)
@@ -31,7 +31,7 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 
 	lexicon_teletype.flush();
 
-    // Write to the teletype the posting list and its relative entry in the lexicon
+    // Write to the teletype the posting list and its relative entry in the data
     for(const auto& [term, array] : inverted_index)
     {
         // Iterate through all docids and save the docids
@@ -77,7 +77,7 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 		lexicon_teletype.write((char*)&end_pos, sizeof(uint64_t));
     }
 
-	// flush freqs 'n lexicon
+	// flush freqs 'n data
 	freq_teletype.flush();
 	lexicon_teletype.flush();
 
