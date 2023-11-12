@@ -9,11 +9,15 @@
 #include "index/types.hpp"
 #include "normalizer/WordNormalizer.hpp"
 #include "indexBuilder/IndexBuilder.hpp"
+#include "util/thread_pool.hpp"
 
 typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
 constexpr size_t CHUNK_SIZE = 2'000'000;
+
+// At most one thread should write on disk at a given time
+std::mutex disk_writer_mutex;
 
 /*
  * The uncompressed file contains one document per line.
@@ -21,7 +25,7 @@ constexpr size_t CHUNK_SIZE = 2'000'000;
  * <pid>\t<text>\n
  * where <pid> is the docno and <text> is the document content
  */
-static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, const std::filesystem::path& out_dir) {
+static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, const std::filesystem::path& out_dir) {
 	using namespace std::chrono_literals;
 
 	normalizer::WordNormalizer wn;
@@ -60,6 +64,9 @@ static void process_chunk(std::unique_ptr<std::vector<doc_tuple_t>> chunk, sinde
     }
 
 	const auto stop_time_proc = std::chrono::steady_clock::now();
+
+	// Wait for exclusive access to disk
+	std::lock_guard<std::mutex> guard(disk_writer_mutex);
 
 	// Write stuff to disk
 	std::string base_name = "db_" + std::to_string(base_id / CHUNK_SIZE);
@@ -104,31 +111,40 @@ int main(int argc, char** argv)
 	// A chunk contains a partition of lines read from stdin to be processed
 	// We store them in an array of <docno, doc> that will be deleted by
 	// process_chunk
-	auto chunk = std::make_unique<std::vector<doc_tuple_t>>();
+	auto chunk = std::make_shared<std::vector<doc_tuple_t>>();
 	size_t chunk_n = 0;
 
 	// bench stuff
 	const auto start_time = std::chrono::steady_clock::now();
 
+	// Multi-thread
+	thread_pool pool(4);
+
 	// Iterate through all lines from STDIN
     while (std::getline(std::cin, pid_str, '\t') and std::getline(std::cin, doc))
     {
-        chunk->push_back({pid_str, doc});
+        chunk->emplace_back(pid_str, doc);
 
         if (line_count % CHUNK_SIZE == 0)
         {
-            process_chunk(std::move(chunk), chunk_n * CHUNK_SIZE + 1, out_dir);
+			pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] {
+				process_chunk(chunk, chunk_n * CHUNK_SIZE + 1, out_dir);
+			});
 			chunk_n += 1;
 
 			// Allocate new chunk for next round
-            chunk = std::make_unique<std::vector<doc_tuple_t>>();
+            chunk = std::make_shared<std::vector<doc_tuple_t>>();
         }
 		line_count++;
 	}
 
     // Process the remaining lines which are less than CHUNK_SIZE
 	if (not chunk->empty())
-		process_chunk(std::move(chunk), chunk_n * CHUNK_SIZE + 1, out_dir);
+		pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] () {
+			process_chunk(chunk, chunk_n * CHUNK_SIZE + 1, out_dir);
+		});
+
+	pool.wait_all_jobs();
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << line_count << " documents in " << (stop_time - start_time) / 1.0s << "s\n";
