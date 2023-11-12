@@ -134,6 +134,9 @@ int main(int argc, char** argv)
 
 			// Allocate new chunk for next round
             chunk = std::make_shared<std::vector<doc_tuple_t>>();
+
+			// Wait for a spot before we continue
+			pool.wait_for_free_worker();
         }
 		line_count++;
 	}

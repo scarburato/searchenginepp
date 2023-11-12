@@ -33,6 +33,8 @@ class thread_pool
 public:
 	explicit thread_pool(size_t n_workers = std::thread::hardware_concurrency());
 	~thread_pool();
+	void wait_for_empty_queue();
+	void wait_for_free_worker();
 	void wait_all_jobs();
 	void add_job(const Task&& job);
 };

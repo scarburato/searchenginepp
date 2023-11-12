@@ -77,12 +77,31 @@ void thread_pool::worker_procedure(size_t worker_id)
 	}
 }
 
+void thread_pool::wait_for_empty_queue()
+{
+	// Critical section, wait the queue to be empty
+	std::unique_lock queue_lock(jobs_queue_mutex);
+	jobs_queue_popped_cv.wait(queue_lock, [&]{ return jobs.empty(); });
+}
+
+void thread_pool::wait_for_free_worker()
+{
+	wait_for_empty_queue();
+
+	// Wait for one idling job
+	std::unique_lock done_lock(done_mutex);
+	done_cv.wait(done_lock, [&] () -> bool {
+		for(size_t i = 0; i < workers.size(); i++)
+			if(idling[i])
+				return true;
+
+		return false;
+	});
+}
+
 void thread_pool::wait_all_jobs()
 {
-	{// Critical section, wait the queue to be empty
-		std::unique_lock queue_lock(jobs_queue_mutex);
-		jobs_queue_popped_cv.wait(queue_lock, [&]{ return jobs.empty(); });
-	}
+	wait_for_empty_queue();
 
 	// Now wait for all threads to be idle
 	for(size_t worker_id = 0; worker_id < workers.size(); ++worker_id)

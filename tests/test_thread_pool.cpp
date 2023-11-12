@@ -55,3 +55,20 @@ TEST(ThreadPool, test_destructor)
 
 	ASSERT_EQ(n, cycles);
 }
+
+TEST(ThreadPool, test_wait)
+{
+	constexpr size_t cycles = 100;
+	std::atomic_int n = 0;
+
+	{ // pool destructor test
+		thread_pool pool(1);
+		for(size_t i = 0; i < cycles; i++)
+		{
+			pool.add_job([&n] { n += 1; });
+			pool.wait_for_free_worker();
+		}
+	}
+
+	ASSERT_EQ(n, cycles);
+}
