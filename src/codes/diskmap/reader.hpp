@@ -5,6 +5,7 @@
 #include <string>
 #include <cstring>
 #include <sys/mman.h>
+#include <cassert>
 #include "index/Index.hpp"
 #include "meta.hpp"
 
@@ -54,6 +55,9 @@ public:
 		Value current_value;
 
 	private:
+		/**
+		 * Parses a datum's value and moves offset to end of the encoded value
+		 */
 		void parse_value(uint8_t *&offset)
 		{
 			std::array<uint64_t, N> values;
@@ -74,16 +78,25 @@ public:
 				current_value = Value::deserialize(values);
 		}
 
+		/**
+		 * Parses one datum from the block and computes the offset to next one
+		 * This method as collateral effects as it updates the iterator's data
+		 * @param offset where to parse
+		 */
 		void parse(uint8_t *offset)
 		{
+			// two cases: not first element of block
 			if((uint64_t)offset % B != 0)
 			{
+				// First element of non-block start: the common prefix's length
 				auto t = codes::VariableBytes::parse(offset);
 				size_t prefix_len = t.first;
 				offset += t.second;
 
+				// Then a sequence of values
 				parse_value(offset);
 
+				// Finally we can compute the complete key string
 				auto postfix = std::string((char *) offset);
 				current_key =
 						std::string(parent.index_string[current_block].first).substr(0, prefix_len)
@@ -91,19 +104,41 @@ public:
 
 				offset += postfix.size() + 1;
 			}
-			else
+			else // first element of block
 			{
 				// First block: b_i
+				// First element of a block is the encoded index of the block's head. We
+				// don't really make use of it, but we have to move forward nonetheless
 				auto t = codes::VariableBytes::parse(offset);
 				offset += t.second;
 
+				// then a sequence of values associated to the block-head's key
 				parse_value(offset);
 
+				// current_key is retrieved from the vector
 				current_block++;
 				current_key = parent.index_string[current_block].first;
-			}
-			offset_to_next_datum = offset;
 
+				// For debug release: check if indexes are still aligned
+				assert(t.first == index);
+				assert(t.first == parent.index_string[current_block].second);
+			}
+
+			// If next o(s_b_j, s_(i+1)) == 0 then block finished early. We must align ourselves to next
+			if((uint64_t)offset + 1 % B != 0 and *offset == 0x00)
+				offset_to_datum = B - ((uint64_t)offset % B);
+			else
+				offset_to_next_datum = offset;
+		}
+
+		iterator(disk_map& p, uint8_t *datum, size_t index, size_t current_block_):
+				parent(p), offset_to_datum(datum), index(index), current_block(current_block_)
+		{
+			if(index < parent.metadata_block->M)
+			{
+				current_block--; // bc parse() will increase it again... ops...
+				parse(offset_to_datum);
+			}
 		}
 
 	public:
@@ -111,20 +146,10 @@ public:
 		using difference_type   = std::ptrdiff_t;
 		using value_type = std::pair<std::string, Value>;
 
-		iterator(disk_map& p, uint8_t *datum, size_t index, size_t current_block):
-			parent(p), offset_to_datum(datum), index(index), current_block(current_block)
-		{
-			if(index < parent.metadata_block->M)
-				parse(offset_to_datum);
-		}
-
 		iterator& operator++()
 		{
 			offset_to_datum = offset_to_next_datum;
-
-			// If next offset is zero, then EOB, align to next block
-			if (*offset_to_next_datum == 0)
-				offset_to_datum += B - ((uint64_t)offset_to_datum % B);
+			++index;
 
 			parse(offset_to_next_datum);
 
@@ -138,27 +163,30 @@ public:
 
 		bool operator==(const iterator& other) const
 		{
+			assert(offset_to_datum == other.offset_to_datum);
 			return index == other.index;
 		}
 
-		bool operator!=(const iterator& other) const
-		{
-			return index != other.index;
-		}
+		bool operator!=(const iterator& other) const {not operator==(other);}
 	};
 
 	iterator begin()
 	{
-		return iterator(*this, compressed_blocks, 0, -1);
+		return iterator(*this, compressed_blocks, 0, 0);
 	}
 	iterator end()
 	{
 		return iterator(*this, compressed_blocks, metadata_block->M, metadata_block->n_blocks);
 	}
 
+	/**
+	 * Finds element
+	 * @param q query
+	 * @return the element if there's a match, end() otherwise
+	 */
 	iterator find(const std::string& q)
 	{
-		// Perform binary search on the heads' blocks
+		// Perform binary search on the blocks' heads
 		auto block_headers_it = std::lower_bound(
 				index_string.begin(), index_string.end(),
 				std::make_pair(q.c_str(), 0), compare);
@@ -180,10 +208,12 @@ public:
 		iterator block_start_it(*this, compressed_blocks + block_number*B, block_headers_it->second, block_number);
 		iterator block_end_it(*this, compressed_blocks + (block_number + 1)*B, (block_headers_it + 1)->second, block_number + 1);
 
-		for(auto it = block_start_it; it != block_end_it; ++it)
+		// We may as well stop earlier if it->second > q
+		for(auto it = block_start_it; it != block_end_it and it->second <= q; ++it)
 			if(it->second == q)
 				return it;
 
+		// We found nothing
 		return end();
 	}
 

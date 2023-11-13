@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fno-exceptions")
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast ")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast -DNDEBUG")
 
 option(USE_STEMMER "Enable or disable Snowball's stemmer and stopword removal" ON)
 option(FIX_MSMARCO_LATIN1 "Enable or disable heuristic and encoding fix for certain wronly encoded docs in MSMARCO" OFF)
