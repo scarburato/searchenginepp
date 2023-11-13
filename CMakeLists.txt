@@ -51,6 +51,7 @@ add_library(libprogetto
         src/meta.hpp
         src/util/thread_pool.cpp
         src/util/thread_pool.hpp
+        src/codes/diskmap/builder.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")
