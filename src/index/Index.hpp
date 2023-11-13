@@ -5,6 +5,7 @@
 #include <vector>
 #include "../codes/variable_blocks.hpp"
 #include "types.hpp"
+#include "../util/memory.hpp"
 
 namespace sindex
 {
@@ -15,7 +16,6 @@ struct DocumentInfo
 	doclen_t lenght;
 };
 
-std::pair<void*, size_t> mmap_helper(char const *const filename); // In this way it's visible to others who includes Index.hpp
 /**
  * This class represents the index and is used to access the documents'
  * information regarding the terms they contain and their frequencies.
@@ -38,7 +38,7 @@ public:
 	 * @param map_filename
 	 * @param inverted_indices_filename
 	 */
-	Index(const std::string& map_filename, const std::string& inverted_indices_filename);
+	Index(const memory_area& map_file, const memory_area& inverted_indices_file);
 	~Index();
 };
 

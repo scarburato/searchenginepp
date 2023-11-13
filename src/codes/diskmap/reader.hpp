@@ -35,8 +35,8 @@ private:
 		if constexpr (is_std_array_v<Value>)
 			return Value().size();
 
-
-		return Value::serialize_size;
+		if constexpr (std::is_class_v<Value>)
+			return Value::serialize_size;
 	}();
 
 	static bool compare(const std::pair<const char*, size_t>& a, const std::pair<const char*, size_t>& b) {
@@ -45,16 +45,22 @@ private:
 
 public:
 	class iterator{
+	public:
+	public:
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type   = std::ptrdiff_t;
+		using value_type = std::pair<std::string, Value>;
+
 	private:
 		disk_map& parent;
 		uint8_t *offset_to_datum;
 		uint8_t *offset_to_next_datum = nullptr;
 		size_t index;
 		size_t current_block;
-		std::string current_key;
-		Value current_value;
 
-	private:
+		// <current_key, current_value>
+		value_type current;
+
 		/**
 		 * Parses a datum's value and moves offset to end of the encoded value
 		 */
@@ -70,12 +76,12 @@ public:
 
 			// If integral
 			if constexpr (std::is_integral_v<Value>)
-				current_value = values[0];
+				current.second = values[0];
 			else if constexpr (std::is_array_v<Value>)
 				for(size_t i = 0; i < N; i++)
-					current_value[i] = values[i];
+					current.second[i] = values[i];
 			else // Object
-				current_value = Value::deserialize(values);
+				current.second = Value::deserialize(values);
 		}
 
 		/**
@@ -98,7 +104,7 @@ public:
 
 				// Finally we can compute the complete key string
 				auto postfix = std::string((char *) offset);
-				current_key =
+				current.first =
 						std::string(parent.index_string[current_block].first).substr(0, prefix_len)
 						+ postfix;
 
@@ -117,7 +123,7 @@ public:
 
 				// current_key is retrieved from the vector
 				current_block++;
-				current_key = parent.index_string[current_block].first;
+				current.first = parent.index_string[current_block].first;
 
 				// For debug release: check if indexes are still aligned
 				assert(t.first == index);
@@ -126,10 +132,12 @@ public:
 
 			// If next o(s_b_j, s_(i+1)) == 0 then block finished early. We must align ourselves to next
 			if((uint64_t)offset + 1 % B != 0 and *offset == 0x00)
-				offset_to_datum = B - ((uint64_t)offset % B);
+				offset_to_next_datum = offset + (B - ((uint64_t)offset % B));
 			else
 				offset_to_next_datum = offset;
 		}
+
+	public:
 
 		iterator(disk_map& p, uint8_t *datum, size_t index, size_t current_block_):
 				parent(p), offset_to_datum(datum), index(index), current_block(current_block_)
@@ -140,11 +148,6 @@ public:
 				parse(offset_to_datum);
 			}
 		}
-
-	public:
-		using iterator_category = std::forward_iterator_tag;
-		using difference_type   = std::ptrdiff_t;
-		using value_type = std::pair<std::string, Value>;
 
 		iterator& operator++()
 		{
@@ -158,8 +161,10 @@ public:
 
 		const value_type& operator*() const
 		{
-			return {current_key, current_value};
+			return current;
 		}
+
+		const value_type* operator->() const {return &current;}
 
 		bool operator==(const iterator& other) const
 		{
@@ -167,7 +172,7 @@ public:
 			return index == other.index;
 		}
 
-		bool operator!=(const iterator& other) const {not operator==(other);}
+		bool operator!=(const iterator& other) const {return not operator==(other);}
 	};
 
 	iterator begin()
@@ -209,8 +214,8 @@ public:
 		iterator block_end_it(*this, compressed_blocks + (block_number + 1)*B, (block_headers_it + 1)->second, block_number + 1);
 
 		// We may as well stop earlier if it->second > q
-		for(auto it = block_start_it; it != block_end_it and it->second <= q; ++it)
-			if(it->second == q)
+		for(auto it = block_start_it; it != block_end_it and it->first <= q; ++it)
+			if(it->first == q)
 				return it;
 
 		// We found nothing
@@ -222,21 +227,19 @@ public:
 		return find(q)->second;
 	}
 
-	explicit disk_map(const std::string& file_name)
+	explicit disk_map(const memory_area& memory)
 	{
-		auto lexicon_minfo = sindex::mmap_helper(file_name.c_str());
+		auto lexicon_minfo = memory.get();
 		data = (uint8_t*)lexicon_minfo.first;
 		data_size = lexicon_minfo.second;
 		compressed_blocks = data + B;
-		//metadata_block_ = reinterpret_cast<MetadataBlock*>(data);
-		if (data_size < sizeof(MetadataBlock))
-			abort();
 
 		metadata_block = (MetadataBlock *)(data);
 		index_string.reserve(metadata_block->n_blocks); // to reserve the space for the strings
 		char* curr = (char*) data + metadata_block->offset_to_heads;
 		index_string.emplace_back(curr, 0);
 
+		// load all blocks' heads' pointers in memory
 		while(index_string.size() < metadata_block->n_blocks){
 			curr++;
 			if(*curr != '\0')

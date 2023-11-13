@@ -52,6 +52,8 @@ add_library(libprogetto
         src/util/thread_pool.cpp
         src/util/thread_pool.hpp
         src/codes/diskmap/reader.hpp
+        src/util/memory.cpp
+        src/util/memory.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")

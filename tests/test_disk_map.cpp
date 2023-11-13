@@ -3,5 +3,12 @@
 
 TEST(DiskTest, test0)
 {
-	codes::disk_map<int> test("ciao.txt");
+	memory_mmap area("ciao.txt");
+	codes::disk_map<int> test(area);
+
+	for(auto it = test.begin(); it != test.end(); ++it)
+		std::cout << it->first << '\n';
+
+	auto it = test.find("banano");
+
 }
