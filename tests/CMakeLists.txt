@@ -10,6 +10,7 @@ add_executable(Google_Tests_run
         test_codes_unary.cpp
         test_index_builder.cpp
         test_thread_pool.cpp
+        test_disk_map.cpp
 )
 target_link_libraries(Google_Tests_run PRIVATE gtest_main libprogetto)
 target_include_directories(Google_Tests_run PUBLIC "../src")

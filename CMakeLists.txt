@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fno-exceptions")
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast ")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast -DNDEBUG")
 
 option(USE_STEMMER "Enable or disable Snowball's stemmer and stopword removal" ON)
 option(FIX_MSMARCO_LATIN1 "Enable or disable heuristic and encoding fix for certain wronly encoded docs in MSMARCO" OFF)
@@ -51,7 +51,10 @@ add_library(libprogetto
         src/meta.hpp
         src/util/thread_pool.cpp
         src/util/thread_pool.hpp
+        src/codes/diskmap/reader.hpp
         src/codes/diskmap/builder.hpp
+        src/util/memory.cpp
+        src/util/memory.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")

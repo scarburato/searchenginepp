@@ -32,7 +32,7 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
     // Write to the teletype the posting list and its relative entry in the lexicon
     for(const auto& [term, posting_list] : inverted_index)
     {
-        
+
         // Write starting offset of the docids
 		const uint64_t start_pos = docid_teletype.tellp();
 		lexicon_teletype.write((char*)&start_pos, sizeof(uint64_t));
