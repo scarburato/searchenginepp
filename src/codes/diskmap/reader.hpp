@@ -99,16 +99,16 @@ public:
 				size_t prefix_len = t.first;
 				offset += t.second;
 
-				// Then a sequence of values
-				parse_value(offset);
-
-				// Finally we can compute the complete key string
+				// then we can compute the complete key string
 				auto postfix = std::string((char *) offset);
 				current.first =
 						std::string(parent.index_string[current_block].first).substr(0, prefix_len)
 						+ postfix;
 
 				offset += postfix.size() + 1;
+
+				// Finally a sequence of values
+				parse_value(offset);
 			}
 			else // first element of block
 			{
@@ -130,8 +130,9 @@ public:
 				assert(t.first == parent.index_string[current_block].second);
 			}
 
-			// If next o(s_b_j, s_(i+1)) == 0 then block finished early. We must align ourselves to next
-			if((uint64_t)offset + 1 % B != 0 and *offset == 0x00)
+			// If next o(s_b_j, s_(i+1)) == 0 and P(i+1) = '\0'
+			// then block finished early. We must align ourselves to next
+			if((uint64_t)offset + 1 % B != 0 and ((uint64_t)offset + 2 % B != 0 or (*offset == 0x00 and *(offset + 1) == 0x00)))
 				offset_to_next_datum = offset + (B - ((uint64_t)offset % B));
 			else
 				offset_to_next_datum = offset;
