@@ -49,6 +49,8 @@ add_library(libprogetto
         src/normalizer/stop_words.cpp
         src/normalizer/stop_words.hpp
         src/meta.hpp
+        src/util/thread_pool.cpp
+        src/util/thread_pool.hpp
         src/codes/diskmap/reader.hpp
 )
 

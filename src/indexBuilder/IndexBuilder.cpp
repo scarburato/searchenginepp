@@ -6,6 +6,7 @@
 #include "IndexBuilder.hpp"
 #include "../index/types.hpp"
 #include "../codes/unary.hpp"
+#include "../codes/variable_blocks.hpp"
 
 namespace sindex
 {
@@ -14,38 +15,30 @@ namespace sindex
 * Function that writes to disk the inverted index
 * @param docid_teletype stream in which the docids are saved
 * @param freq_teletype stream in which the frequencies are saved
-* @param lexicon_teletype stream in which the data is saved
+* @param lexicon_teletype stream in which the lexicon is saved
 * @param document_index_teletype stream in which the document index is saved
 */
 void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& freq_teletype, std::ostream& lexicon_teletype, std::ostream& document_index_teletype)
 {
 	// Write down all terms to disk, first we write the number of buckets necessary for the hashmap
-	uint64_t buckets = inverted_index.bucket_count();
-	lexicon_teletype.write((char*)&buckets, sizeof(uint64_t));
-	for(const auto& [term, array] : inverted_index)
+	for(const auto& [term, posting_list] : inverted_index)
     {
 		lexicon_teletype.write(term.c_str(), term.size() + 1);
-        const freq_t ni = array.size();
-        lexicon_teletype.write((char *)&ni, sizeof(freq_t));
+        lexicon_teletype.write((char *)&posting_list.n_docs, sizeof(freq_t));
     }
 
 	lexicon_teletype.flush();
 
-    // Write to the teletype the posting list and its relative entry in the data
-    for(const auto& [term, array] : inverted_index)
+    // Write to the teletype the posting list and its relative entry in the lexicon
+    for(const auto& [term, posting_list] : inverted_index)
     {
-        // Iterate through all docids and save the docids
-        auto iter_docid = array | std::ranges::views::transform([](std::pair<docid_t, freq_t> p) {return p.first;});
-
-        // Encode the posting lists of the relative term using the variable bytes algorithm 
-        codes::VariableBlocksEncoder doc_encoder(iter_docid.begin(), iter_docid.end());
 
         // Write starting offset of the docids
 		const uint64_t start_pos = docid_teletype.tellp();
 		lexicon_teletype.write((char*)&start_pos, sizeof(uint64_t));
 
         // Save docid posting list
-        for(uint8_t byte : doc_encoder)
+        for(uint8_t byte : posting_list.docids)
             docid_teletype.put(byte);
 
         // Save ending offset of the docids
@@ -56,13 +49,13 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 	// Write to disk all the id postings
 	docid_teletype.flush();
 
-    for(const auto& [term, array] : inverted_index)
+    for(const auto& [term, posting_list] : inverted_index)
     {
-        // Iterate through all docids and save the frequencies
-        auto iter_freq = array | std::ranges::views::transform([](std::pair<docid_t, freq_t> p) {return p.second;});
+        // Decode Variable Bytes encoded frequencies
+		codes::VariableBlocksDecoder iter_freqs(posting_list.freqs.begin(), posting_list.freqs.end());
 
         // Encode the posting lists of the relative term using the unary algorithm 
-        codes::UnaryEncoder freq_encoder(iter_freq.begin(), iter_freq.end());
+        codes::UnaryEncoder freq_encoder(iter_freqs.begin(), iter_freqs.end());
 
 		// Write starting offset of the docids
 		const uint64_t start_pos = freq_teletype.tellp();
@@ -77,7 +70,7 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 		lexicon_teletype.write((char*)&end_pos, sizeof(uint64_t));
     }
 
-	// flush freqs 'n data
+	// flush freqs 'n lexicon
 	freq_teletype.flush();
 	lexicon_teletype.flush();
 
