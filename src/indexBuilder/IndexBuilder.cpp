@@ -77,7 +77,7 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 	// We use this variable as a offsets to the string section of the document index
 	size_t current_string_offset = 0;
 
-    // Document index part, first we write the base
+    // Document index part, first we write the raw_data
 	document_index_teletype.write((char*)&base_docid, sizeof(docid_t));
 	for(size_t i = 0; i < document_index.size(); ++i)
     {

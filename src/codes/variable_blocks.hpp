@@ -130,7 +130,7 @@ struct VariableBytes
 	 * Takes a number and compresses it using the Variable Bytes method
 	 * The compressed number is put in the variable `bytes[]`
 	 */
-	explicit inline VariableBytes(uint64_t number)
+	explicit inline VariableBytes(uint64_t number = 0)
 	{
 		for(; number; number = number >> 7, ++used_bytes)
 			bytes[used_bytes] = (number & 0b01111111) | 0b10000000;
