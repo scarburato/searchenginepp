@@ -31,8 +31,8 @@ private:
 		if constexpr (is_std_array_v<Value>)
 			return Value().size();
 
-
-		return Value::serialize_size;
+		if constexpr (std::is_class_v<Value>)
+			return Value::serialize_size;
 	}();
 
     static size_t compute_common_prefix(const char *a, const char *b)
@@ -52,7 +52,7 @@ private:
     }
 
 public:
-    disk_map_writer(std::ostream& teletype):
+    explicit disk_map_writer(std::ostream& teletype):
         teletype(teletype)
     {
         metadata_block_off = teletype.tellp();
@@ -61,18 +61,19 @@ public:
 
     void add(const std::string& key, Value value)
     {
-        // auto cValues = codes::VariableBytes(value);
-
-        std::array<codes::VariableBytes, N> cValues;
-        if constexpr (std::is_integral_v<Value> or std::is_array_v<Value>)
-            for(auto val : value)
-                cValues.push_back(codes::VariableBytes(val));
-        else // Object
-            for(auto val : value.serialize())
-                cValues.push_back(codes::VariableBytes(val));
+		std::array<codes::VariableBytes, N> compressed_values;
+		if constexpr (std::is_integral_v<Value>)
+			compressed_values[0] = codes::VariableBytes(value);
+		else if constexpr (std::is_array_v<Value>)
+			for (size_t i = 0; i < N; i++)
+				compressed_values[i] = codes::VariableBytes(value[i]);
+		else if constexpr (std::is_class_v<Value>)
+			compressed_values = value.serialize();
 
         // Sum of total used bytes of all the values
-        size_t total_used_bytes = std::accumulate(cValues.begin(), cValues.end(), 0, [](size_t sum, const auto& cValue) { return sum + cValue.used_bytes; });
+        size_t total_used_bytes = std::accumulate(
+				compressed_values.begin(), compressed_values.end(), 0,
+				[](size_t sum, const auto& cValue) { return sum + cValue.used_bytes; });
         
         n_strings += 1;
 
@@ -81,7 +82,7 @@ public:
             heads.push_back(key);
 
             teletype.put(0);
-            for(auto cValue : cValues)
+            for(auto cValue : compressed_values)
                 teletype.write((char*)cValue.bytes, cValue.used_bytes);
 
             current_bytes = 1 + total_used_bytes;
@@ -102,7 +103,7 @@ public:
             auto ci = codes::VariableBytes(i++);
 
             teletype.write((char*)ci.bytes, ci.used_bytes);
-            for(auto cValue : cValues)
+            for(auto cValue : compressed_values)
                 teletype.write((char*)cValue.bytes, cValue.used_bytes);
 
             current_bytes = ci.used_bytes + total_used_bytes;
@@ -111,7 +112,7 @@ public:
 
         teletype.write((char*)&common_len, sizeof(common_len));
         teletype.write(key.c_str() + common_len, diff_len);
-        for(auto cValue : cValues)
+        for(auto cValue : compressed_values)
             teletype.write((char*)cValue.bytes, cValue.used_bytes);
 
         current_bytes += sizeof(common_len) + diff_len + total_used_bytes;
