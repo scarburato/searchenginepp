@@ -17,7 +17,7 @@ static std::string random_string()
 	std::string str;
 	do
 		str += distrib_chars(gen);
-	while(distrib_prob(gen) <= 0.333);
+	while(distrib_prob(gen) <= 0.90);
 	return str;
 }
 
