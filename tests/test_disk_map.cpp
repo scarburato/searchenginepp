@@ -29,8 +29,8 @@ static Value random_data()
 	return v;
 }
 
-constexpr size_t test_page_size = 0x400;
-constexpr size_t test_cardinality = 4'500;
+constexpr size_t test_page_size = 0x100;
+constexpr size_t test_cardinality = 8'500;
 
 struct DiskTest: public testing::Test
 {
