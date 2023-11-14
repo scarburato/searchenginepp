@@ -5,7 +5,8 @@
 #include <string>
 #include <array>
 
-class DiskSerializable;
+class DiskSerializable
+{};
 
 template <typename>
 struct is_pair_string : std::false_type
