@@ -131,8 +131,8 @@ public:
 			// If next o(s_b_j, s_(i+1)) == 0 and P(i+1) = '\0'
 			// then block finished early. We must align ourselves to next
 			if(offset % B != 0 and (
-					offset + 1 % B == 0 or
-					offset + 2 % B == 0 or (
+					(offset + 1) % B == 0 or
+					(offset + 2) % B == 0 or (
 							*(parent.cblocks_base + offset) == 0x00 and *(parent.cblocks_base + offset + 1) == 0x00)))
 				offset_to_next_datum = offset + (B - (offset % B));
 			else

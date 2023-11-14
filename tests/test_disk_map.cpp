@@ -55,10 +55,11 @@ TEST(DiskTest, test0)
 	ASSERT_EQ(map.size(), test_data.size());
 
 	auto it =  map.begin();
-	for(auto it_test = test_data.begin(); it_test != test_data.end(); ++it, ++it_test)
+	size_t index = 0;
+	for(auto it_test = test_data.begin(); it_test != test_data.end(); ++it, ++it_test, ++index)
 	{
-		ASSERT_EQ(it_test->first, it->first) << "at offset " << std::hex << it.memory_offset() << std::dec;
-		ASSERT_EQ(it_test->second, it->second) << "at offset " << std::hex << it.memory_offset() << std::dec;
+		ASSERT_EQ(it_test->first, it->first) << "index " << index << " at offset " << std::hex << it.memory_offset() << std::dec;
+		ASSERT_EQ(it_test->second, it->second) << "index " << index << "at offset " << std::hex << it.memory_offset() << std::dec;
 	}
 
 	ASSERT_EQ(it, map.end()) << it.memory_offset();
