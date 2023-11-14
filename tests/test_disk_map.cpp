@@ -32,29 +32,52 @@ static Value random_data()
 constexpr size_t test_page_size = 0x400;
 constexpr size_t test_cardinality = 4'500;
 
-TEST(DiskTest, test0)
+struct DiskTest: public testing::Test
 {
-	// Generate random stuff
 	std::map<std::string, Value> test_data;
-	for(size_t i = 0; i < test_cardinality; ++i)
-		test_data[random_string()] = random_data();
+	std::unique_ptr<codes::disk_map<Value, test_page_size>> map = nullptr;
+	std::unique_ptr<memory_mmap> filefr = nullptr;
+	std::vector<std::pair<std::string, Value>> test_search = {
+			{"corea", {1,2,3,4,5}}, {"zorro", {3,4,5,99, 10}},
+			{"kkkkkkk", {50, 0xcafebabe, 0, 0, 0xefff}},
+			{"pechino", {0, 0, 0, 0, 0}}
+			};
 
-	auto filename = testing::TempDir() + "disk_map_test0";
-	std::ofstream file(filename, std::ios::binary | std::ios::trunc);
-	codes::disk_map_writer<Value, test_page_size> map_w(file);
+	DiskTest() {
+		// Generate random stuff
+		for(size_t i = 0; i < test_cardinality; ++i)
+			test_data[random_string()] = random_data();
 
-	for(auto const& p : test_data)
-		map_w.add(p);
+		// Search test
+		for (const auto& t : test_search)
+			test_data.insert(t);
 
-	map_w.finalize();
-	file.close();
+		auto it = test_data.find("autocisterna");
+		if(it != test_data.end())
+			test_data.erase(it);
 
-	memory_mmap filefr(filename);
-	codes::disk_map<Value, test_page_size> map(filefr);
+		// Write to disk
+		auto filename = testing::TempDir() + "disk_map_test0";
+		std::ofstream file(filename, std::ios::binary | std::ios::trunc);
+		codes::disk_map_writer<Value, test_page_size> map_w(file);
 
-	ASSERT_EQ(map.size(), test_data.size());
+		for(auto const& p : test_data)
+			map_w.add(p);
 
-	auto it =  map.begin();
+		map_w.finalize();
+		file.close();
+
+		filefr = std::make_unique<memory_mmap>(filename);
+		map = std::make_unique<codes::disk_map<Value, test_page_size>>(*filefr);
+	}
+
+};
+
+TEST_F(DiskTest, data_integrity)
+{
+	ASSERT_EQ(map->size(), test_data.size());
+
+	auto it =  map->begin();
 	size_t index = 0;
 	for(auto it_test = test_data.begin(); it_test != test_data.end(); ++it, ++it_test, ++index)
 	{
@@ -62,5 +85,19 @@ TEST(DiskTest, test0)
 		ASSERT_EQ(it_test->second, it->second) << "index " << index << "at offset " << std::hex << it.memory_offset() << std::dec;
 	}
 
-	ASSERT_EQ(it, map.end()) << it.memory_offset();
+	ASSERT_EQ(it, map->end()) << it.memory_offset();
+}
+
+TEST_F(DiskTest, data_search)
+{
+	auto it1 = map->find("autocisterna");
+	ASSERT_EQ(it1, map->end());
+
+	for (const auto& t : test_search)
+	{
+		auto it2 = map->find(t.first);
+		ASSERT_NE(it2, map->end());
+		ASSERT_EQ(it2->first, t.first);
+		ASSERT_EQ(it2->second, t.second);
+	}
 }

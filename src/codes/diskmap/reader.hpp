@@ -233,7 +233,7 @@ public:
 
 	size_t size() const {return metadata->M;}
 
-	explicit disk_map(const memory_area& memory)
+	explicit disk_map(memory_area& memory)
 	{
 		auto lexicon_minfo = memory.get();
 		raw_data = lexicon_minfo.first;
