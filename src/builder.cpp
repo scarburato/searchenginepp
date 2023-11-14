@@ -75,7 +75,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids", std::ios_base::binary);
 	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs", std::ios_base::binary);
-	auto lexicon = std::ofstream(out_dir/base_name/"data", std::ios_base::binary);
+	auto lexicon = std::ofstream(out_dir/base_name/"lexicon", std::ios_base::binary);
 	auto doc_index = std::ofstream(out_dir/base_name/"document_index", std::ios_base::binary);
 
 	indexBuilder.write_to_disk(pl_docids, pl_freqs, lexicon, doc_index);

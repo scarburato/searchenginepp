@@ -79,8 +79,14 @@ public:
 		else if constexpr (is_std_array_v<Value>)
 			for (size_t i = 0; i < N; i++)
 				compressed_values[i] = codes::VariableBytes(value[i]);
-		else if constexpr (std::is_base_of_v<DiskSerializable, Value>)
-			compressed_values = value.serialize();
+		else
+        {
+            auto values = value.serialize();
+            for(size_t i = 0; i < N; i++)
+                compressed_values[i] = codes::VariableBytes(values[i]);
+
+        }
+			
 
         // Sum of total used bytes of all the values
         size_t total_used_bytes = std::accumulate(
@@ -133,6 +139,7 @@ public:
         uint64_t n_blocks = heads.size();
         teletype.write((char*)&n_blocks, sizeof(uint64_t));
 
+        teletype.flush();
     }
 };
 
