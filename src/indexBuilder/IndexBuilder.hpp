@@ -11,6 +11,7 @@
 #include "../index/types.hpp"
 #include "../index/Index.hpp"
 #include "../codes/variable_blocks.hpp"
+#include <ranges>
 
 namespace sindex
 {
@@ -71,6 +72,15 @@ public:
     }
 
     void write_to_disk(std::ostream& docid_teletype, std::ostream& freq_teletype, std::ostream& lexicon_teletype, std::ostream& document_index_teletype);
+
+
+	// view to obtain n_i in builder
+	auto get_n_docs_view()
+	{
+		return std::views::transform(inverted_index, [](const auto &pair) {
+			return std::make_pair(pair.first, pair.second.n_docs);
+		});
+	}
 };
 
 }

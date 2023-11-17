@@ -16,6 +16,9 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 // Chunks' sizes
 constexpr size_t CHUNK_SIZE = 2'000'000;
 
+std::mutex global_lexicon_mutex;
+std::map<std::string, unsigned> global_lexicon;
+
 // At most one thread should write on disk at a given time
 std::mutex disk_writer_mutex;
 
@@ -25,7 +28,8 @@ std::mutex disk_writer_mutex;
  * <pid>\t<text>\n
  * where <pid> is the docno and <text> is the document content
  */
-static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, const std::filesystem::path& out_dir) {
+static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, const std::filesystem::path& out_dir)
+{
 	using namespace std::chrono_literals;
 
 	normalizer::WordNormalizer wn;
@@ -36,15 +40,15 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	// Process all docs (lines) in a chunk
     for (const auto &line : *chunk)
-    {
+	{
 		// Extract all tokens and their freqs
 		std::unordered_map<std::string, unsigned> term_freqs;
 		auto terms = wn.normalize(line.second);
 
-		while(true)
+		while (true)
 		{
-			const auto& term = terms.next();
-			if(term.empty())
+			const auto &term = terms.next();
+			if (term.empty())
 				break;
 
 			term_freqs[term]++;
@@ -53,20 +57,30 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 		// Add to index
 		indexBuilder.add_to_doc(
 				docid,
-				{.docno = line.first, .lenght = (sindex::doclen_t)(term_freqs.size())}
-				);
+				{.docno = line.first, .lenght = (sindex::doclen_t) (term_freqs.size())}
+		);
 
-		for(const auto& [term, freq] : term_freqs)
+		for (const auto &[term, freq]: term_freqs)
 			indexBuilder.add_to_post(term, docid, freq);
+
 
 		// Increment docid
 		docid += 1;
-    }
+	}
+
+	// Retrieve n_docs_view from IndexBuilder
+	// Wait for exclusive access to disk
+	std::lock_guard<std::mutex> guard(disk_writer_mutex);
+	auto n_docs_view = indexBuilder.get_n_docs_view();
+
+	//std::cout << "Term: " << pair.first << ", n_docs: " << pair.second << std::endl;
+	for (const auto &pair: n_docs_view)
+		global_lexicon[pair.first] += pair.second;
 
 	const auto stop_time_proc = std::chrono::steady_clock::now();
 
 	// Wait for exclusive access to disk
-	std::lock_guard<std::mutex> guard(disk_writer_mutex);
+	//std::lock_guard<std::mutex> guard(disk_writer_mutex);
 
 	// Write stuff to disk
 	std::string base_name = "db_" + std::to_string(base_id / CHUNK_SIZE);
@@ -89,6 +103,25 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 		<< " ( " << (stop_time - start_time)/1s << "s elapsed)" << std::endl;
 }
 
+void write_global_lexicon(const std::filesystem::path& out_dir) {
+	std::ofstream global_lexicon_file(out_dir / "global_lexicon", std::ios::binary);
+
+	if (global_lexicon_file.is_open())
+	{
+		for (const auto& pair : global_lexicon) {
+			// Scrivi la chiave come stringa
+			size_t key_size = pair.first.size();
+			global_lexicon_file.write(reinterpret_cast<const char*>(&key_size), sizeof(size_t));
+			global_lexicon_file.write(pair.first.c_str(), key_size);
+
+			// Scrivi il valore come unsigned
+			global_lexicon_file.write(reinterpret_cast<const char*>(&pair.second), sizeof(unsigned));
+		}
+		global_lexicon_file.close();
+	} else
+		abort();
+
+}
 
 int main(int argc, char** argv)
 {
@@ -148,6 +181,9 @@ int main(int argc, char** argv)
 		});
 
 	pool.wait_all_jobs();
+
+	// Write global_lexicon to a file
+	write_global_lexicon(out_dir);
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << line_count << " documents in " << (stop_time - start_time) / 1.0s << "s\n";
