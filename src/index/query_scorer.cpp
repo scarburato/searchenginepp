@@ -6,5 +6,5 @@ sindex::score_t sindex::QueryTFIDFScorer::score(sindex::freq_t tf_term_doc, sind
 	if(tf_term_doc == 0)
 		return 0;
 
-	return (1 + log(tf_term_doc)) * log((double)n_docs / (double)df_t);
+	return (1 + log2(tf_term_doc)) * log2((double)n_docs / (double)df_t);
 }
