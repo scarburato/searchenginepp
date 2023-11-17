@@ -10,6 +10,7 @@
 #include "normalizer/WordNormalizer.hpp"
 #include "indexBuilder/IndexBuilder.hpp"
 #include "util/thread_pool.hpp"
+#include "codes/diskmap/builder.hpp"
 
 typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
@@ -17,7 +18,7 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 constexpr size_t CHUNK_SIZE = 2'000'000;
 
 std::mutex global_lexicon_mutex;
-std::map<std::string, unsigned> global_lexicon;
+std::map<std::string, sindex::freq_t> global_lexicon;
 
 // At most one thread should write on disk at a given time
 std::mutex disk_writer_mutex;
@@ -103,24 +104,14 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 		<< " ( " << (stop_time - start_time)/1s << "s elapsed)" << std::endl;
 }
 
-void write_global_lexicon(const std::filesystem::path& out_dir) {
-	std::ofstream global_lexicon_file(out_dir / "global_lexicon", std::ios::binary);
+void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
+	std::ofstream lexicon_teletype(out_dir / "global_lexicon", std::ios::binary);
+	codes::disk_map_writer<sindex::freq_t,0x1000> lexicon_writer(lexicon_teletype);
 
-	if (global_lexicon_file.is_open())
-	{
-		for (const auto& pair : global_lexicon) {
-			// Scrivi la chiave come stringa
-			size_t key_size = pair.first.size();
-			global_lexicon_file.write(reinterpret_cast<const char*>(&key_size), sizeof(size_t));
-			global_lexicon_file.write(pair.first.c_str(), key_size);
+	for (const auto& pair : global_lexicon)
+		lexicon_writer.add(pair);
 
-			// Scrivi il valore come unsigned
-			global_lexicon_file.write(reinterpret_cast<const char*>(&pair.second), sizeof(unsigned));
-		}
-		global_lexicon_file.close();
-	} else
-		abort();
-
+	lexicon_writer.finalize();
 }
 
 int main(int argc, char** argv)
@@ -182,8 +173,9 @@ int main(int argc, char** argv)
 
 	pool.wait_all_jobs();
 
-	// Write global_lexicon to a file
-	write_global_lexicon(out_dir);
+
+	// Write global_lexicon using disk_map_writer
+	write_global_lexicon_to_disk_map(out_dir);
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << line_count << " documents in " << (stop_time - start_time) / 1.0s << "s\n";
