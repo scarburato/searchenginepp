@@ -10,14 +10,13 @@
 #include "normalizer/WordNormalizer.hpp"
 #include "indexBuilder/IndexBuilder.hpp"
 #include "util/thread_pool.hpp"
-#include "codes/diskmap/builder.hpp"
+#include "codes/diskmap/diskmap.hpp"
 
 typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
 constexpr size_t CHUNK_SIZE = 2'000'000;
 
-std::mutex global_lexicon_mutex;
 std::map<std::string, sindex::freq_t> global_lexicon;
 
 // At most one thread should write on disk at a given time
@@ -80,9 +79,6 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	const auto stop_time_proc = std::chrono::steady_clock::now();
 
-	// Wait for exclusive access to disk
-	//std::lock_guard<std::mutex> guard(disk_writer_mutex);
-
 	// Write stuff to disk
 	std::string base_name = "db_" + std::to_string(base_id / CHUNK_SIZE);
 	if(not std::filesystem::exists(out_dir/base_name))
@@ -106,7 +102,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	std::ofstream lexicon_teletype(out_dir / "global_lexicon", std::ios::binary);
-	codes::disk_map_writer<sindex::freq_t,0x1000> lexicon_writer(lexicon_teletype);
+	codes::disk_map_writer<sindex::freq_t> lexicon_writer(lexicon_teletype);
 
 	for (const auto& pair : global_lexicon)
 		lexicon_writer.add(pair);
