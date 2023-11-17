@@ -56,6 +56,8 @@ add_library(libprogetto
         src/codes/diskmap/builder.hpp
         src/util/memory.cpp
         src/util/memory.hpp
+        src/index/query_scorer.cpp
+        src/index/query_scorer.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")
