@@ -1,3 +1,5 @@
+#include <atomic>
+#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -18,6 +20,7 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 constexpr size_t CHUNK_SIZE = 2'000'000;
 
 std::map<std::string, sindex::freq_t> global_lexicon;
+std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
 
 // At most one thread should write on disk at a given time
 std::mutex disk_writer_mutex;
@@ -35,6 +38,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	normalizer::WordNormalizer wn;
 	sindex::IndexBuilder indexBuilder(CHUNK_SIZE, base_id);
 	sindex::docid_t docid = base_id;
+	sindex::doclen_t doc_len_sum = 0;
 
 	const auto start_time = std::chrono::steady_clock::now();
 
@@ -65,6 +69,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 				{.docno = line.first, .lenght = doc_len}
 		);
 
+		doc_len_sum += doc_len;
 
 		for (const auto &[term, freq]: term_freqs)
 			indexBuilder.add_to_post(term, docid, freq);
@@ -81,6 +86,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	for (const auto &[term, n]: indexBuilder.get_n_docs_view())
 		global_lexicon[term] += n;
 
+	global_doc_len_sum += doc_len_sum;
 	const auto stop_time_proc = std::chrono::steady_clock::now();
 
 	// Write stuff to disk
@@ -112,6 +118,12 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 		lexicon_writer.add(pair);
 
 	lexicon_writer.finalize();
+}
+
+void write_metadata(const std::filesystem::path& out_dir, const size_t ndocs) {
+	std::ofstream metadata(out_dir / "metadata", std::ios::binary);
+	metadata.write((char*)&global_doc_len_sum, sizeof(sindex::doclen_t));
+	metadata.write((char*)&ndocs, sizeof(size_t));
 }
 
 int main(int argc, char** argv)
@@ -176,9 +188,10 @@ int main(int argc, char** argv)
 
 	// Write global_lexicon using disk_map_writer
 	write_global_lexicon_to_disk_map(out_dir);
+	write_metadata(out_dir, line_count - 1);
 
 	const auto stop_time = std::chrono::steady_clock::now();
-	std::cout << "Processed " << line_count << " documents in " << (stop_time - start_time) / 1.0s << "s\n";
+	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s\n";
 
     return 0;
 }
