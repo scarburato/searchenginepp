@@ -3,9 +3,11 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include "../codes/diskmap/diskmap.hpp"
 #include "../codes/variable_blocks.hpp"
 #include "types.hpp"
 #include "../util/memory.hpp"
+#include "query_scorer.hpp"
 
 namespace sindex
 {
@@ -22,24 +24,35 @@ struct DocumentInfo
  */
 class Index{
 private:
-	std::unordered_map<std::string, std::pair<size_t, size_t>> term_to_inverted_index;
+	using local_lexicon_t = codes::disk_map<LexiconValue>;
+	using global_lexicon_t = codes::disk_map<freq_t>;
 
-	uint8_t *inverted_indices;
+	local_lexicon_t& local_lexicon;
+	global_lexicon_t& global_lexicon;
+
+	const uint8_t *inverted_indices;
 	size_t inverted_indices_length;
 
-	uint8_t *inverted_indices_freqs;
+	const uint8_t *inverted_indices_freqs;
 	size_t inverted_indices_freqs_length;
 
 	std::vector<DocumentInfo> document_index;
 
+	QueryScorer& scorer;
 public:
 	/**
-	 * Create an Index from files
-	 * @param map_filename
-	 * @param inverted_indices_filename
+	 * @param lx the local lexicon
+	 * @param gx the global lexicon
+	 * @param iid inverted indices
+	 * @param iif inverted indices
+	 * @param di document index
 	 */
-	Index(const memory_area& map_file, const memory_area& inverted_indices_file);
+	Index(local_lexicon_t& lx, global_lexicon_t& gx, const memory_area& iid, const memory_area& iif,
+		  const memory_area& di, QueryScorer& qs);
 	~Index();
+
+	void set_scorer(QueryScorer& qs) {scorer = qs;}
+	std::vector<result_t> query(std::set<std::string>& query, size_t top_k = 10);
 };
 
 }

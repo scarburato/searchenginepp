@@ -2,6 +2,7 @@
 // Created by ricky on 10/11/23.
 //
 #pragma once
+#include <algorithm>
 #include <string>
 #include <cstring>
 #include <sys/mman.h>
@@ -33,7 +34,7 @@ private:
 			return 1;
 		else if constexpr (is_std_array_v<Value>)
 			return Value().size();
-		else if constexpr (std::is_base_of_v<DiskSerializable, Value>)
+		else
 			return Value::serialize_size;
 	}();
 

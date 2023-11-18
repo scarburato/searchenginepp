@@ -15,22 +15,6 @@
 namespace sindex
 {
 
-struct LexiconValue
-{
-	size_t start_pos_docid;
-	size_t end_pos_docid;
-	size_t start_pos_freq;
-	size_t end_pos_freq;
-	freq_t n_docs;
-
-	static constexpr size_t serialize_size = 5;
-
-	std::array<uint64_t, serialize_size> serialize () const
-	{
-		return {start_pos_docid, end_pos_docid, start_pos_freq, end_pos_freq, n_docs};
-	}
-};
-
 /**
 * Function that writes to disk the inverted index
 * @param docid_teletype stream in which the docids are saved
