@@ -18,4 +18,10 @@ using IndexDecoder = codes::VariableBlocksDecoder<EncondedDataIterator, docid_t>
 template<typename RawDataIterator>
 using IndexEncoder = codes::VariableBlocksEncoder<RawDataIterator>;
 
+struct DocumentInfoSerialized
+{
+    size_t docno_offset;
+    doclen_t lenght;
+};
+
 }

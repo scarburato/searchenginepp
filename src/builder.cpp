@@ -42,7 +42,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
     for (const auto &line : *chunk)
 	{
 		// Extract all tokens and their freqs
-		std::unordered_map<std::string, unsigned> term_freqs;
+		std::unordered_map<std::string, sindex::freq_t> term_freqs;
 		auto terms = wn.normalize(line.second);
 
 		while (true)
@@ -54,15 +54,21 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 			term_freqs[term]++;
 		}
 
+		auto doc_len = std::accumulate(term_freqs.begin(), 
+												term_freqs.end(), (sindex::doclen_t)0,
+												[](sindex::freq_t sum, const auto& pair) {
+													return sum + pair.second;
+					});
 		// Add to index
 		indexBuilder.add_to_doc(
 				docid,
-				{.docno = line.first, .lenght = (sindex::doclen_t) (term_freqs.size())}
+				{.docno = line.first, .lenght = doc_len}
 		);
+
 
 		for (const auto &[term, freq]: term_freqs)
 			indexBuilder.add_to_post(term, docid, freq);
-
+\
 
 		// Increment docid
 		docid += 1;

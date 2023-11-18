@@ -1,4 +1,5 @@
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <ranges>
 #include <iostream>
@@ -95,16 +96,18 @@ void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& fre
 
     // Document index part, first we write the raw_data
 	document_index_teletype.write((char*)&base_docid, sizeof(docid_t));
-	for(size_t i = 0; i < document_index.size(); ++i)
+
+	size_t n_docs = document_index.size();
+	document_index_teletype.write((char*)&n_docs, sizeof(size_t));
+
+	// We write the document index
+	for(const auto& docinfo : document_index)
     {
-		docid_t docid = base_docid + i;
+		DocumentInfoSerialized docinfo_serialized = {current_string_offset, docinfo.lenght};
+		document_index_teletype.write((char*)& docinfo_serialized, sizeof(DocumentInfoSerialized));
 
-		// Write to disk
-        document_index_teletype.write((char*)&docid, sizeof(docid));
-        document_index_teletype.write((char*)&current_string_offset, sizeof(size_t));
-
-		// Increase offset
-		current_string_offset += document_index[i].docno.size() + 1;
+    	// Increase offset
+		current_string_offset += docinfo.docno.size() + 1;
     }
 
 	// We write the strings' section
