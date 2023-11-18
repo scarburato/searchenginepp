@@ -77,11 +77,9 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	// Retrieve n_docs_view from IndexBuilder
 	// Wait for exclusive access to disk
 	std::lock_guard<std::mutex> guard(disk_writer_mutex);
-	auto n_docs_view = indexBuilder.get_n_docs_view();
 
-	//std::cout << "Term: " << pair.first << ", n_docs: " << pair.second << std::endl;
-	for (const auto &pair: n_docs_view)
-		global_lexicon[pair.first] += pair.second;
+	for (const auto &[term, n]: indexBuilder.get_n_docs_view())
+		global_lexicon[term] += n;
 
 	const auto stop_time_proc = std::chrono::steady_clock::now();
 
