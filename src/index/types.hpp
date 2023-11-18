@@ -9,13 +9,20 @@ namespace sindex
 {
 typedef uint32_t docid_t;
 typedef std::string docno_t;
-typedef uint32_t doclen_t;
+typedef uint64_t doclen_t;
 typedef size_t freq_t;
+typedef double score_t;
 
 template<typename EncondedDataIterator>
 using IndexDecoder = codes::VariableBlocksDecoder<EncondedDataIterator, docid_t>;
 
 template<typename RawDataIterator>
 using IndexEncoder = codes::VariableBlocksEncoder<RawDataIterator>;
+
+struct DocumentInfoSerialized
+{
+    size_t docno_offset;
+    doclen_t lenght;
+};
 
 }
