@@ -10,7 +10,7 @@ namespace sindex
 {
 typedef uint32_t docid_t;
 typedef std::string docno_t;
-typedef uint32_t doclen_t;
+typedef uint64_t doclen_t;
 typedef size_t freq_t;
 typedef double score_t;
 
@@ -20,11 +20,11 @@ struct result_t
 	score_t score;
 };
 
-template<typename EncondedDataIterator>
-using IndexDecoder = codes::VariableBlocksDecoder<EncondedDataIterator, docid_t>;
-
-template<typename RawDataIterator>
-using IndexEncoder = codes::VariableBlocksEncoder<RawDataIterator>;
+struct DocumentInfoSerialized
+{
+	size_t docno_offset;
+	doclen_t lenght;
+};
 
 struct LexiconValue
 {
@@ -41,5 +41,11 @@ struct LexiconValue
 		return {start_pos_docid, end_pos_docid, start_pos_freq, end_pos_freq, n_docs};
 	}
 };
+
+template<typename EncondedDataIterator>
+using IndexDecoder = codes::VariableBlocksDecoder<EncondedDataIterator, docid_t>;
+
+template<typename RawDataIterator>
+using IndexEncoder = codes::VariableBlocksEncoder<RawDataIterator>;
 
 }
