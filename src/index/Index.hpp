@@ -23,11 +23,16 @@ struct DocumentInfo
  * information regarding the terms they contain and their frequencies.
  */
 class Index{
-private:
+public:
 	using local_lexicon_t = codes::disk_map<LexiconValue>;
 	using global_lexicon_t = codes::disk_map<freq_t>;
 
-	local_lexicon_t& local_lexicon;
+private:
+	docid_t base_docid;
+	size_t n_docs;
+	double avgdl;
+
+	local_lexicon_t local_lexicon;
 	global_lexicon_t& global_lexicon;
 
 	const uint8_t *inverted_indices;
@@ -36,19 +41,26 @@ private:
 	const uint8_t *inverted_indices_freqs;
 	size_t inverted_indices_freqs_length;
 
-	std::vector<DocumentInfo> document_index;
+	// Document index
+	const DocumentInfoSerialized *document_index;
+	size_t document_index_length;
+
+	// A series of docno strs, the offsets are written in document_index's elements
+	const char* base_docno;
 
 	QueryScorer& scorer;
 public:
 	/**
 	 * @param lx the local lexicon
 	 * @param gx the global lexicon
-	 * @param iid inverted indices
-	 * @param iif inverted indices
+	 * @param iid inverted indices docids
+	 * @param iif inverted indices freqs
 	 * @param di document index
+	 * @param metadata metadata (N, sigma, avgdl, etc...)
+	 * @param qs query_scorer to use
 	 */
-	Index(local_lexicon_t& lx, global_lexicon_t& gx, const memory_area& iid, const memory_area& iif,
-		  const memory_area& di, QueryScorer& qs);
+	Index(local_lexicon_t lx, global_lexicon_t& gx, const memory_area& iid, const memory_area& iif,
+		  const memory_area& di, const memory_area& metadata, QueryScorer& qs);
 	~Index();
 
 	void set_scorer(QueryScorer& qs) {scorer = qs;}

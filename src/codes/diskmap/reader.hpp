@@ -79,7 +79,7 @@ public:
 			else if constexpr (is_std_array_v<Value>)
 				for(size_t i = 0; i < N; i++)
 					current.second[i] = values[i];
-			else if constexpr (std::is_base_of_v<DiskSerializable, Value>)
+			else
 				current.second = Value::deserialize(values);
 		}
 

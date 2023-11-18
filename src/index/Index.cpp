@@ -1,6 +1,7 @@
 #include <set>
 #include <list>
 #include <queue>
+#include <utility>
 #include "Index.hpp"
 #include "../util/memory.hpp"
 #include "types.hpp"
@@ -9,9 +10,9 @@
 namespace sindex
 {
 
-Index::Index(Index::local_lexicon_t &lx, Index::global_lexicon_t &gx, const memory_area &iid,
-			 const memory_area &iif, const memory_area &di, QueryScorer& qs):
-			 local_lexicon(lx), global_lexicon(gx), scorer(qs)
+Index::Index(Index::local_lexicon_t lx, Index::global_lexicon_t &gx, const memory_area &iid,
+			 const memory_area &iif, const memory_area &di, const memory_area& metadata, QueryScorer& qs):
+			 local_lexicon(std::move(lx)), global_lexicon(gx), scorer(qs)
 {
 	auto t = iid.get();
 	inverted_indices = t.first;
@@ -22,7 +23,14 @@ Index::Index(Index::local_lexicon_t &lx, Index::global_lexicon_t &gx, const memo
 	inverted_indices_freqs_length = t.second;
 
 	t = di.get();
-	// @TODO
+	base_docid = *(docid_t*)t.first;
+	document_index_length = *(size_t*)(t.first + sizeof(docid_t));
+	document_index = (DocumentInfoSerialized*)(t.first + sizeof(docid_t) + sizeof(size_t));
+	base_docno = (const char*)t.first + sizeof(docid_t) + sizeof(size_t) + document_index_length * sizeof(DocumentInfoSerialized);
+
+	t = metadata.get();
+	n_docs = *(size_t*)(t.first + sizeof(doclen_t));
+	avgdl = (double)(*(doclen_t*)t.first) / n_docs;
 }
 
 Index::~Index()
@@ -105,7 +113,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 			if(*iterator.docid_curr != curr_docid)
 				continue;
 
-			score += scorer.score(*iterator.freq_cur, iterator.document_freq,8'000'000); // @FIXME
+			score += scorer.score(*iterator.freq_cur, iterator.document_freq,n_docs);
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results
@@ -151,15 +159,15 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		results.pop();
 
 		result_t res_f = {
-				.docno = std::to_string(res.docid), // @FIXME @TODO
+				.docno = std::string(base_docno + document_index[res.docid - base_docid].docno_offset),
 				.score = res.score
 		};
 
-		// Results are read in increasing order, we have to push them in front to have descending order
+		// Results are read in increasing order, we have to push them in front, to have descending order
 		final_results.insert(final_results.begin(), res_f);
 	}
 
-	return final_results; // @TODO
+	return final_results;
 }
 
 }

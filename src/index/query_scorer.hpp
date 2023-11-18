@@ -7,7 +7,7 @@ namespace sindex
 class QueryScorer
 {
 public:
-	virtual ~QueryScorer() = 0;
+	virtual ~QueryScorer() {};
 
 	virtual score_t score(freq_t tf_term_doc, freq_t df_t, size_t n_docs) = 0;
 };

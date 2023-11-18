@@ -40,6 +40,11 @@ struct LexiconValue
 	{
 		return {start_pos_docid, end_pos_docid, start_pos_freq, end_pos_freq, n_docs};
 	}
+
+	static LexiconValue deserialize(const std::array<uint64_t, serialize_size>& ser)
+	{
+		return {ser[0], ser[1], ser[2], ser[3], ser[4]};
+	}
 };
 
 template<typename EncondedDataIterator>
