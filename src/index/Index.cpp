@@ -108,14 +108,17 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 			score += scorer.score(*iterator.freq_cur, iterator.document_freq,8'000'000); // @FIXME
 		}
 
-		// Push computed result in the results
-		results.emplace(curr_docid, score);
+		// Push computed result in the results, only if our score is greater than worst scoring doc in results
+		if(results.empty() or score > results.top().score)
+		{
+			results.emplace(curr_docid, score);
 
-		// If necessary pop-out the worst scoring element
-		if(results.size() > top_k)
-			results.pop();
+			// If necessary pop-out the worst scoring element
+			if (results.size() > top_k)
+				results.pop();
+		}
 
-		docid_t next_docid = -1;
+		docid_t next_docid = UINT64_MAX;
 		// Move iterators to current docid or (the next closest one)
 		for(auto iterator_it = posting_lists_its.begin(); iterator_it != posting_lists_its.end(); )
 		{
