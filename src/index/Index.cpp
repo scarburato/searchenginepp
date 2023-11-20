@@ -46,6 +46,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		docid_decoder_t::DecodeIterator docid_curr, docid_end;
 		freq_decoder_t::DecodeIterator freq_cur, freq_end;
 		freq_t document_freq;
+		double idf;
 	};
 
 	struct pending_result_t {
@@ -60,7 +61,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>> results;
 
 	std::list<decoder_its_t> posting_lists_its; //@fixme make it work with std::vector
-	size_t n_docs = 0;
+	size_t n_docs_to_process = 0;
 	docid_t docid_base = -1;
 
 	// Iterate over all query terms. We remove useless terms and create the iterators of their posting lists
@@ -90,10 +91,13 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		posting_lists_its.push_back({
 			.docid_curr = docid_decoder_begin, .docid_end = docid_decoder.end(),
 			.freq_cur = freq_decoder.begin(), .freq_end = freq_decoder.end(),
-			.document_freq = global_term_info_it->second
+
+			// some term's information
+			.document_freq = global_term_info_it->second,
+			.idf = QueryTFIDFScorer::idf(n_docs, global_term_info_it->second)
 		});
 
-		n_docs = std::max(n_docs, posting_info.n_docs);
+		n_docs_to_process = std::max(n_docs_to_process, posting_info.n_docs);
 		docid_base = std::min(docid_base, (docid_t)*docid_decoder_begin);
 
 		++q_term_it;
@@ -113,7 +117,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 			if(*iterator.docid_curr != curr_docid)
 				continue;
 
-			score += scorer.score(*iterator.freq_cur, iterator.document_freq,n_docs);
+			score += scorer.score(*iterator.freq_cur, iterator.idf);
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results

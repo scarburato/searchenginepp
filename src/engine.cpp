@@ -65,6 +65,9 @@ int main(int argc, char** argv)
 	// Leggi righe da stdin fintanto EOF
 	while (std::getline(std::cin, query))
 	{
+		if(query.empty())
+			continue;
+
 		// bench stuff
 		const auto start_time = std::chrono::steady_clock::now();
 
@@ -79,13 +82,19 @@ int main(int argc, char** argv)
 			tokens.insert(term);
 		}
 
+		thread_pool tp(1);
+
 		for(auto& index : indices)
 		{
-			auto results = index.index.query(tokens);
-			for(const auto& res : results)
-				std::cout << res.docno << ',' << res.score << '\t';
-			std::cout << std::endl;
+			tp.add_job([&] {
+				auto results = index.index.query(tokens);
+				for(const auto& res : results)
+					std::cout << res.docno << ',' << res.score << '\t';
+				std::cout << std::endl;
+			});
 		}
+
+		tp.wait_all_jobs();
 
 		const auto stop_time = std::chrono::steady_clock::now();
 		std::cout << "Solved in " << (stop_time - start_time) / 1.0ms << "ms" << std::endl;
