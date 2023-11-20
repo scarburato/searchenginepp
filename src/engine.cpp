@@ -49,6 +49,9 @@ int main(int argc, char** argv)
 	std::vector<index_worker_t> indices;
 	indices.reserve(100); // @TODO @FIXME SOLVE THIS REFERENCE MADNESS
 
+	// VROOOOOM STANDARD IO
+	std::ios_base::sync_with_stdio(false);
+
 	// Find all folders in the folder, each folder is a doc-partitioned db
 	for (auto const& dir_entry : std::filesystem::directory_iterator(in_dir))
 	{
@@ -61,6 +64,14 @@ int main(int argc, char** argv)
 
 	std::string query;
 	normalizer::WordNormalizer wn;
+
+	// Where I store the results, one array's cell per worker, then I'll merge them
+	std::unique_ptr<std::vector<sindex::result_t>[]> results(new std::vector<sindex::result_t>[indices.size()]);
+	std::vector<sindex::result_t> merged_results;
+	merged_results.reserve(10*indices.size() + 1);
+
+	// Workers
+	thread_pool tp(1);
 
 	// Leggi righe da stdin fintanto EOF
 	while (std::getline(std::cin, query))
@@ -82,22 +93,32 @@ int main(int argc, char** argv)
 			tokens.insert(term);
 		}
 
-		thread_pool tp(1);
-
+		// Solve the query
+		auto i = 0;
 		for(auto& index : indices)
 		{
-			tp.add_job([&] {
-				auto results = index.index.query(tokens);
-				for(const auto& res : results)
-					std::cout << res.docno << ',' << res.score << '\t';
-				std::cout << std::endl;
+			tp.add_job([&, pos = i++] {
+				results[pos] = index.index.query(tokens);
 			});
 		}
 
 		tp.wait_all_jobs();
 
+		// Merge them all
+		for(size_t i = 0; i < indices.size(); ++i)
+			merged_results.insert(merged_results.end(), results[i].begin(), results[i].end());
+
+		std::sort(merged_results.begin(), merged_results.end(), std::greater<>());
+		merged_results.resize(10); // top-10 results
+
 		const auto stop_time = std::chrono::steady_clock::now();
 		std::cout << "Solved in " << (stop_time - start_time) / 1.0ms << "ms" << std::endl;
+
+		for (const auto& res : merged_results)
+			std::cout << res.docno << ", " << res.score << '\t';
+		std::cout << std::endl;
+
+		merged_results.clear();
 	}
 	return 0;
 }

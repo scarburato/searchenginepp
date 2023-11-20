@@ -18,6 +18,9 @@ struct result_t
 {
 	docno_t docno;
 	score_t score;
+
+	bool operator>(const result_t &b) const {return score > b.score;}
+	bool operator==(const result_t &b) const {return score == b.score;}
 };
 
 struct DocumentInfoSerialized
