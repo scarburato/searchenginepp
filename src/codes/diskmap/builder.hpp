@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include "../variable_blocks.hpp"
 
 namespace codes
 {
@@ -47,19 +48,23 @@ private:
             ostr.seekp(next_block_off, std::ios_base::cur);
     }
 
-	void new_block(const std::string& key, std::array<codes::VariableBytes, N>& compressed_values, size_t cvals_size)
-	{
-		heads.push_back(key);
-		align_stream_to_block(teletype);
+    void new_block(const std::string& key, std::array<codes::VariableBytes, N>& compressed_values, size_t cvals_size)
+    {
+        heads.push_back(key);
+        align_stream_to_block(teletype);
 
-		auto bi_encoded = codes::VariableBytes(n_strings);
+        auto bi_encoded = codes::VariableBytes(n_strings);
 
-		teletype.write((char*)bi_encoded.bytes, bi_encoded.used_bytes);
-		for(auto cValue : compressed_values)
-			teletype.write((char*)cValue.bytes, cValue.used_bytes);
+        teletype.write((char*)bi_encoded.bytes, bi_encoded.used_bytes);
 
-		current_bytes = bi_encoded.used_bytes + cvals_size;
-	}
+        if constexpr (N == 0)
+            teletype.write((char *) compressed_values.size(), sizeof(size_t));
+
+        for(auto cValue : compressed_values)
+                teletype.write((char*)cValue.bytes, cValue.used_bytes);
+        
+        current_bytes = bi_encoded.used_bytes + cvals_size;
+    }
 
 public:
     explicit disk_map_writer(std::ostream& teletype):
@@ -69,25 +74,34 @@ public:
         teletype.seekp(B, std::ios_base::cur);
     }
 
-	void add(const std::pair<std::string, Value>& p) {add(p.first, p.second);}
+    void add(const std::pair<std::string, Value>& p) {add(p.first, p.second);}
 
     void add(const std::string& key, const Value& value)
     {
-		std::array<codes::VariableBytes, N> compressed_values;
-		if constexpr (std::is_integral_v<Value>)
-			compressed_values[0] = codes::VariableBytes(value);
-		else if constexpr (is_std_array_v<Value>)
-			for (size_t i = 0; i < N; i++)
-				compressed_values[i] = codes::VariableBytes(value[i]);
-		else
+        // Create compressed_values as an array or vector based on the value of N
+        std::conditional_t<(N == 0), std::vector<Value>, std::array<codes::VariableBytes, N>> compressed_values;
+        if constexpr (N != 0)
+        {
+            if constexpr (std::is_integral_v<Value>)
+                compressed_values[0] = codes::VariableBytes(value);
+            else if constexpr (is_std_array_v<Value>)
+                for (size_t i = 0; i < N; i++)
+                    compressed_values[i] = codes::VariableBytes(value[i]);
+            else
+            {
+                auto values = value.serialize();
+                for(size_t i = 0; i < N; i++)
+                    compressed_values[i] = codes::VariableBytes(values[i]);
+            }
+        } 
+        else 
         {
             auto values = value.serialize();
-            for(size_t i = 0; i < N; i++)
-                compressed_values[i] = codes::VariableBytes(values[i]);
-
+            
+            for (size_t i = 0; i < values.size(); i++)
+                compressed_values.push_back(values[i]);
         }
-			
-
+        
         // Sum of total used bytes of all the values
         size_t total_used_bytes = std::accumulate(
 				compressed_values.begin(), compressed_values.end(), 0,
@@ -115,6 +129,10 @@ public:
 		n_strings += 1;
         teletype.write((char*)&common_len, sizeof(common_len));
         teletype.write(key.c_str() + common_len, diff_len);
+
+        if constexpr (N == 0)
+            teletype.write((char *) compressed_values.size(), sizeof(size_t));
+            
         for(auto cValue : compressed_values)
             teletype.write((char*)cValue.bytes, cValue.used_bytes);
 
