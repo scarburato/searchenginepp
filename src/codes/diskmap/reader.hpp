@@ -11,6 +11,7 @@
 #include "../../util/memory.hpp"
 #include "../../meta.hpp"
 #include "../variable_blocks.hpp"
+#include "diskmap.hpp"
 
 
 namespace codes{

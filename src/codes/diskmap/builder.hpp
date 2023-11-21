@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include "../variable_blocks.hpp"
+#include "diskmap.hpp"
 
 namespace codes
 {
