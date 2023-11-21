@@ -68,7 +68,7 @@ public:
 		 */
 		void parse_value(size_t& offset)
 		{
-			// Create compressed_values as an array or vector based on the value of N
+			// Create values as an array or vector based on the value of N
         	std::conditional_t<(N == 0), std::vector<uint64_t>, std::array<uint64_t, N>> values;
 
 			size_t numbers;
