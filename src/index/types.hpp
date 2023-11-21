@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <array>
+#include <vector>
 #include "../codes/variable_blocks.hpp"
 
 namespace sindex
@@ -46,6 +48,13 @@ struct LexiconValue
 
 	static LexiconValue deserialize(const std::array<uint64_t, serialize_size>& ser)
 	{
+		return {ser[0], ser[1], ser[2], ser[3], ser[4]};
+	}
+
+	static LexiconValue deserialize(const std::vector<uint64_t>& ser)
+	{
+		if(ser.size() != serialize_size)
+			assert(ser.size() == serialize_size && "Invalid serialized lexicon value");
 		return {ser[0], ser[1], ser[2], ser[3], ser[4]};
 	}
 };

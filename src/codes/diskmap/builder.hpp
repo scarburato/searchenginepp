@@ -61,7 +61,7 @@ private:
             teletype.write((char *) compressed_values.size(), sizeof(size_t));
 
         for(auto cValue : compressed_values)
-                teletype.write((char*)cValue.bytes, cValue.used_bytes);
+            teletype.write((char*)cValue.bytes, cValue.used_bytes);
         
         current_bytes = bi_encoded.used_bytes + cvals_size;
     }
@@ -79,7 +79,7 @@ public:
     void add(const std::string& key, const Value& value)
     {
         // Create compressed_values as an array or vector based on the value of N
-        std::conditional_t<(N == 0), std::vector<Value>, std::array<codes::VariableBytes, N>> compressed_values;
+        std::conditional_t<(N == 0), std::vector<codes::VariableBytes>, std::array<codes::VariableBytes, N>> compressed_values;
         if constexpr (N != 0)
         {
             if constexpr (std::is_integral_v<Value>)
@@ -97,7 +97,6 @@ public:
         else 
         {
             auto values = value.serialize();
-            
             for (size_t i = 0; i < values.size(); i++)
                 compressed_values.push_back(values[i]);
         }
@@ -106,6 +105,9 @@ public:
         size_t total_used_bytes = std::accumulate(
 				compressed_values.begin(), compressed_values.end(), 0,
 				[](size_t sum, const auto& cValue) { return sum + cValue.used_bytes; });
+        
+        if constexpr (N == 0)
+            total_used_bytes += sizeof(size_t);
 
 		// First call to add()
         if(heads.empty())
