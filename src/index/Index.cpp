@@ -56,6 +56,8 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		bool operator>(const pending_result_t& b) const {return score > b.score;}
 	};
 
+	const bool doclen_required = scorer.needs_doc_metadata();
+
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be pop
 	std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>> results;
@@ -117,7 +119,8 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 			if(*iterator.docid_curr != curr_docid)
 				continue;
 
-			score += scorer.score(*iterator.freq_cur, iterator.idf);
+			doclen_t dl = doclen_required ? document_index[curr_docid - base_docid].lenght : 0;
+			score += scorer.score(*iterator.freq_cur, iterator.idf, dl, avgdl);
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results

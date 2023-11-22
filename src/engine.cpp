@@ -11,6 +11,7 @@
 #include "util/thread_pool.hpp"
 
 static sindex::QueryTFIDFScorer tfidf_scorer;
+static sindex::QueryBM25Scorer bm25_scorer;
 
 struct index_worker_t
 {
@@ -29,7 +30,7 @@ struct index_worker_t
 			iid_mem(db/"posting_lists_docids"),
 			iif_mem(db/"posting_lists_freqs"),
 			di_mem(db/"document_index"),
-			index(std::move(local_lexicon), global_lexicon, iid_mem, iif_mem, di_mem, metadata, tfidf_scorer)
+			index(std::move(local_lexicon), global_lexicon, iid_mem, iif_mem, di_mem, metadata, bm25_scorer)
 	{}
 };
 
