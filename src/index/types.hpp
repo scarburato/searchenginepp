@@ -51,12 +51,6 @@ struct LexiconValue
 		return {ser[0], ser[1], ser[2], ser[3], ser[4]};
 	}
 
-	static LexiconValue deserialize(const std::vector<uint64_t>& ser)
-	{
-		if(ser.size() != serialize_size)
-			assert(ser.size() == serialize_size && "Invalid serialized lexicon value");
-		return {ser[0], ser[1], ser[2], ser[3], ser[4]};
-	}
 };
 
 template<typename EncondedDataIterator>

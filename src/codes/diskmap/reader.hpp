@@ -77,8 +77,9 @@ public:
 				numbers = N;
 			else
 			{
-				numbers = *(size_t*)(parent.cblocks_base + offset);
-				offset += sizeof(size_t);
+				auto compressed_size = codes::VariableBytes::parse(*(size_t*)(parent.cblocks_base + offset));
+				numbers = compressed_size.first;
+				offset += compressed_size.second;
 			}
 
 			for(size_t i = 0; i < numbers; i++)

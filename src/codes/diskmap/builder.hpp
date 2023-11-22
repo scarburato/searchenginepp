@@ -49,7 +49,8 @@ private:
             ostr.seekp(next_block_off, std::ios_base::cur);
     }
 
-    void new_block(const std::string& key, std::array<codes::VariableBytes, N>& compressed_values, size_t cvals_size)
+    template<class Container>
+    void new_block(const std::string& key, Container& compressed_values, size_t cvals_size)
     {
         heads.push_back(key);
         align_stream_to_block(teletype);
@@ -59,7 +60,10 @@ private:
         teletype.write((char*)bi_encoded.bytes, bi_encoded.used_bytes);
 
         if constexpr (N == 0)
-            teletype.write((char *) compressed_values.size(), sizeof(size_t));
+        {
+            auto compressed_size = codes::VariableBytes(compressed_values.size());
+            teletype.write((char *) compressed_size.bytes, compressed_size.used_bytes);
+        }
 
         for(auto cValue : compressed_values)
             teletype.write((char*)cValue.bytes, cValue.used_bytes);
@@ -134,7 +138,10 @@ public:
         teletype.write(key.c_str() + common_len, diff_len);
 
         if constexpr (N == 0)
-            teletype.write((char *) compressed_values.size(), sizeof(size_t));
+        {
+            auto compressed_size = codes::VariableBytes(compressed_values.size());
+            teletype.write((char *) compressed_size.bytes, compressed_size.used_bytes);
+        }
             
         for(auto cValue : compressed_values)
             teletype.write((char*)cValue.bytes, cValue.used_bytes);
