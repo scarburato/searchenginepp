@@ -119,7 +119,6 @@ TEST_F(DiskTest, data_search)
 		ASSERT_EQ(it2->second, t.second);
 	}
 }
-
 struct ss
 {
 	static constexpr size_t serialize_size = 0;
@@ -210,3 +209,4 @@ TEST_F(DiskMapVariable, variable_data)
 	}
 
 }
+
