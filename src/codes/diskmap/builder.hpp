@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <ostream>
 #include <sys/types.h>
@@ -164,7 +165,7 @@ void merge(std::ostream &out_stream, std::vector<disk_map<Value, B>> maps, std::
 {
 	struct pos
 	{
-		disk_map<Value, B>::iterator curr, end;
+		typename disk_map<Value, B>::iterator curr, end;
 	};
 
 	std::vector<pos> positions;
