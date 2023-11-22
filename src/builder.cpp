@@ -18,6 +18,7 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
 constexpr size_t CHUNK_SIZE = 2'000'000;
+constexpr size_t MAX_CHUNK_SPACE = 2'000'000;
 
 std::map<std::string, sindex::freq_t> global_lexicon;
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
@@ -31,6 +32,7 @@ std::mutex disk_writer_mutex;
  * <pid>\t<text>\n
  * where <pid> is the docno and <text> is the document content
  */
+
 static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, const std::filesystem::path& out_dir)
 {
 	using namespace std::chrono_literals;
@@ -45,6 +47,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	// Process all docs (lines) in a chunk
     for (const auto &line : *chunk)
 	{
+
 		// Extract all tokens and their freqs
 		std::unordered_map<std::string, sindex::freq_t> term_freqs;
 		auto terms = wn.normalize(line.second);
@@ -73,11 +76,11 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 		for (const auto &[term, freq]: term_freqs)
 			indexBuilder.add_to_post(term, docid, freq);
-\
 
 		// Increment docid
 		docid += 1;
 	}
+
 
 	// Retrieve n_docs_view from IndexBuilder
 	// Wait for exclusive access to disk
@@ -130,7 +133,9 @@ int main(int argc, char** argv)
 {
 	using namespace std::chrono_literals;
 
-    std::string pid_str, doc;
+	size_t space_count = 0;
+
+	std::string pid_str, doc;
     size_t line_count = 1;
 
 	// This is where we'll store the output stuff
@@ -161,6 +166,27 @@ int main(int argc, char** argv)
     {
         chunk->emplace_back(pid_str, doc);
 
+		// Compute the space occupied by doc and pid_str
+		space_count += pid_str.size() + doc.size();
+		// Send the chunk only if overcomes the space's threshold
+		if (space_count >= MAX_CHUNK_SPACE)
+		{
+			pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] {
+				process_chunk(chunk, chunk_n * CHUNK_SIZE + 1, out_dir);
+			});
+			chunk_n += 1;
+
+			// Allocate new chunk for next round
+			chunk = std::make_shared<std::vector<doc_tuple_t>>();
+
+			// Reset space
+			space_count = 0;
+
+			// Wait for a spot before we continue
+			pool.wait_for_free_worker();
+		}
+/*
+ * COSA CIERA PRIMA
         if (line_count % CHUNK_SIZE == 0)
         {
 			pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] {
@@ -175,6 +201,8 @@ int main(int argc, char** argv)
 			pool.wait_for_free_worker();
         }
 		line_count++;
+
+*/
 	}
 
     // Process the remaining lines which are less than CHUNK_SIZE

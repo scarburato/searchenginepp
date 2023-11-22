@@ -62,6 +62,7 @@ private:
 	}
 
 public:
+	disk_map_writer() = delete;
     explicit disk_map_writer(std::ostream& teletype):
         teletype(teletype)
     {
@@ -141,6 +142,49 @@ public:
 
         teletype.flush();
     }
+
 };
+
+template<class Value, size_t B = BLOCK_SIZE>
+void merge(std::ostream &out_stream, std::vector<disk_map<Value, B>> maps, std::function<Value(const std::string&, const std::vector<Value>&)> merge_policy)
+{
+	struct pos
+	{
+		disk_map<Value, B>::iterator curr, end;
+	};
+
+	std::vector<pos> positions;
+	disk_map_writer<Value, B> global(out_stream);
+
+	for (const auto &map:maps)
+		positions.emplace_back(map.begin(), map.end());
+
+	while(not positions.empty())
+	{
+		std::string min;
+
+		for(const auto &p : positions)
+			min = min.empty() ? p.curr->first : std::min(p.curr->first, min);
+
+		std::vector<Value> values;
+		for(auto it = positions.begin(); it != positions.end(); )
+		{
+			if(it->curr->first != min)
+				continue;
+			values.push_back(it->curr->second);
+
+			++(it->curr);
+			if(it->curr == it->end)
+				it = positions.erase(it);
+			else
+				++it;
+		}
+		Value merged = (values.size() == 1) ? values[0] : merge_policy(min, values);
+
+		global.add(min, merged);
+	}
+
+	global.finalize();
+}
 
 }
