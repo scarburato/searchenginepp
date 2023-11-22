@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <array>
+#include <vector>
 #include "../codes/variable_blocks.hpp"
 
 namespace sindex
@@ -48,6 +50,7 @@ struct LexiconValue
 	{
 		return {ser[0], ser[1], ser[2], ser[3], ser[4]};
 	}
+
 };
 
 template<typename EncondedDataIterator>

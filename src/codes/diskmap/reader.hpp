@@ -7,8 +7,12 @@
 #include <cstring>
 #include <sys/mman.h>
 #include <cassert>
+#include <vector>
 #include "../../util/memory.hpp"
 #include "../../meta.hpp"
+#include "../variable_blocks.hpp"
+#include "diskmap.hpp"
+
 
 namespace codes{
 
@@ -65,12 +69,27 @@ public:
 		 */
 		void parse_value(size_t& offset)
 		{
-			std::array<uint64_t, N> values;
-			for(size_t i = 0; i < N; i++)
+			// Create values as an array or vector based on the value of N
+        	std::conditional_t<(N == 0), std::vector<uint64_t>, std::array<uint64_t, N>> values;
+
+			size_t numbers;
+			if constexpr (N != 0)
+				numbers = N;
+			else
+			{
+				auto compressed_size = codes::VariableBytes::parse(parent.cblocks_base + offset);
+				numbers = compressed_size.first;
+				offset += compressed_size.second;
+			}
+
+			for(size_t i = 0; i < numbers; i++)
 			{
 				auto t = codes::VariableBytes::parse(parent.cblocks_base + offset);
 				offset += t.second;
-				values[i] = t.first;
+				if constexpr (N != 0)
+					values[i] = t.first;
+				else
+					values.push_back(t.first);
 			}
 
 			// If integral
