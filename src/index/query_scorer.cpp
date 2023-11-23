@@ -48,7 +48,7 @@ QueryBM25Scorer::QueryBM25Scorer(double k1, double b) : k1(k1), b(b)
 
 score_t QueryBM25Scorer::score(sindex::freq_t tf_term_doc, sindex::score_t idf, sindex::doclen_t dl, double avgdl)
 {
-	return (tf_term_doc / k1*((1-b) + b*dl/avgdl) + tf_term_doc) * idf;
+	return (tf_term_doc / (k1*((1-b) + b*dl/avgdl) + tf_term_doc)) * idf;
 }
 
 

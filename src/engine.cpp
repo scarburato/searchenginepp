@@ -59,11 +59,12 @@ int main(int argc, char** argv)
 		if(not dir_entry.is_directory())
 			continue;
 
-		std::cout << dir_entry.path() << std::endl;
+		std::clog << dir_entry.path() << std::endl;
 		indices.emplace_back(dir_entry, metadata_mem, global_lexicon);
 	}
 
 	std::string query;
+	unsigned long q_id;
 	normalizer::WordNormalizer wn;
 
 	// Where I store the results, one array's cell per worker, then I'll merge them
@@ -75,7 +76,7 @@ int main(int argc, char** argv)
 	thread_pool tp(1);
 
 	// Leggi righe da stdin fintanto EOF
-	while (std::getline(std::cin, query))
+	while (std::cin >> q_id and std::getline(std::cin, query))
 	{
 		if(query.empty())
 			continue;
@@ -113,11 +114,12 @@ int main(int argc, char** argv)
 		merged_results.resize(10); // top-10 results
 
 		const auto stop_time = std::chrono::steady_clock::now();
-		std::cout << "Solved in " << (stop_time - start_time) / 1.0ms << "ms" << std::endl;
+		std::clog << "Solved query " << q_id << " in " << (stop_time - start_time) / 1.0ms << "ms" << std::endl;
 
-		for (const auto& res : merged_results)
-			std::cout << res.docno << ", " << res.score << '\t';
-		std::cout << std::endl;
+		for (size_t i = 0; i < merged_results.size(); ++i)
+			if(not merged_results[i].docno.empty())
+				std::cout << q_id<< " Q0 " << merged_results[i].docno
+					<< " " << (i+1) << " " << merged_results[i].score << " MIRCV0" << std::endl;
 
 		merged_results.clear();
 	}
