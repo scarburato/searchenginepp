@@ -72,7 +72,8 @@ add_subdirectory(tests)
 add_executable(prova src/prova_main.cpp)
 target_link_libraries(prova PRIVATE libprogetto)
 
-add_executable(builder src/builder.cpp)
+add_executable(builder src/builder.cpp
+)
 target_link_libraries(builder PRIVATE libprogetto)
 
 add_executable(engine src/engine.cpp)
