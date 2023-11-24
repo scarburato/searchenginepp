@@ -66,6 +66,9 @@ const std::string& WordNormalizer::TokenStream::next()
 				token.size());
 
 		token = stem_token;
+#else
+		if(token.empty())
+			continue;
 #endif
 
 		return token;

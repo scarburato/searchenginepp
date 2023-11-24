@@ -72,7 +72,7 @@ static inline std::string build_regex(const std::vector<std::string>& symbols)
 
 Hyperscan::Hyperscan()
 {
-	std::cout << "Init hyperscan db..." << std::endl;
+	std::clog << "Init hyperscan db..." << std::endl;
 
 	hs_compile_error_t *compile_err;
 
@@ -99,7 +99,7 @@ Hyperscan::Hyperscan()
 
 	if (res != HS_SUCCESS)
 	{
-		std::cout
+		std::clog
 				<< "ERROR: Unable to compile pattern n (" << compile_err->expression
 				<< "): " << compile_err->message << '\n';
 		hs_free_compile_error(compile_err);
@@ -110,7 +110,7 @@ Hyperscan::Hyperscan()
 	res = hs_alloc_scratch(hs_pun_db, &common_scratch);
 	if(res != HS_SUCCESS)
 	{
-		std::cout << "ERROR: Unable to allocate common thread_scratch\n";
+		std::clog << "ERROR: Unable to allocate common thread_scratch\n";
 		abort();
 	}
 }
@@ -119,13 +119,13 @@ Scratch::Scratch():
 	scratch(nullptr)
 {
 	assert(hyperscan.common_scratch != nullptr);
-	std::cout << "building scratch..." << std::endl;
+	std::clog << "building scratch..." << std::endl;
 
 	// For each thread, clone the thread_scratch
 	auto res = hs_clone_scratch(hyperscan.common_scratch, &scratch);
 	if(res != HS_SUCCESS)
 	{
-		std::cout << "ERROR: Unable to allocate common thread_scratch" << std::endl;
+		std::clog << "ERROR: Unable to allocate common thread_scratch" << std::endl;
 		abort();
 	}
 }
@@ -163,7 +163,7 @@ void remove_punctuation(std::string &str)
 
 	if(ret != HS_SUCCESS)
 	{
-		std::cout << "ERROR: while processing string `" << str << "\'\n";
+		std::clog << "ERROR: while processing string `" << str << "\'\n";
 		abort();
 	}
 }
