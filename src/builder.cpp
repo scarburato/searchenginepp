@@ -17,8 +17,7 @@
 typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
-constexpr size_t CHUNK_SIZE = 2'000'000;
-constexpr size_t MAX_CHUNK_SPACE = 2'000'000;
+constexpr size_t MAX_CHUNK_SPACE = 675'000'000;
 
 std::map<std::string, sindex::freq_t> global_lexicon;
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
@@ -33,12 +32,12 @@ std::mutex disk_writer_mutex;
  * where <pid> is the docno and <text> is the document content
  */
 
-static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, const std::filesystem::path& out_dir)
+static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sindex::docid_t base_id, size_t chunk_n, const std::filesystem::path& out_dir)
 {
 	using namespace std::chrono_literals;
 
 	normalizer::WordNormalizer wn;
-	sindex::IndexBuilder indexBuilder(CHUNK_SIZE, base_id);
+	sindex::IndexBuilder indexBuilder(chunk->size(), base_id);
 	sindex::docid_t docid = base_id;
 	sindex::doclen_t doc_len_sum = 0;
 
@@ -93,7 +92,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	const auto stop_time_proc = std::chrono::steady_clock::now();
 
 	// Write stuff to disk
-	std::string base_name = "db_" + std::to_string(base_id / CHUNK_SIZE);
+	std::string base_name = "db_" + std::to_string(chunk_n);
 	if(not std::filesystem::exists(out_dir/base_name))
 		std::filesystem::create_directory(out_dir/base_name);
 
@@ -106,7 +105,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout
-		<< "Chunk " << (base_id / CHUNK_SIZE)
+		<< "Chunk " << chunk_n
 		<< " (thread " << std::hex << std::this_thread::get_id() << std::dec << " )"
 		<< " processed in " << (stop_time_proc - start_time) / 1.0s << "s"
 		<< " and written in " << (stop_time - stop_time_proc) / 1.0s << "s"
@@ -137,6 +136,7 @@ int main(int argc, char** argv)
 
 	std::string pid_str, doc;
     size_t line_count = 1;
+	sindex::docid_t docid_start = 1;
 
 	// This is where we'll store the output stuff
 	const std::filesystem::path out_dir = argc > 1 ? argv[1] : "data";
@@ -171,10 +171,11 @@ int main(int argc, char** argv)
 		// Send the chunk only if overcomes the space's threshold
 		if (space_count >= MAX_CHUNK_SPACE)
 		{
-			pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] {
-				process_chunk(chunk, chunk_n * CHUNK_SIZE + 1, out_dir);
+			pool.add_job([chunk = std::move(chunk), docid_start, chunk_n, out_dir] {
+				process_chunk(chunk, docid_start, chunk_n, out_dir);
 			});
 			chunk_n += 1;
+			docid_start = line_count + 1;
 
 			// Allocate new chunk for next round
 			chunk = std::make_shared<std::vector<doc_tuple_t>>();
@@ -200,16 +201,18 @@ int main(int argc, char** argv)
 			// Wait for a spot before we continue
 			pool.wait_for_free_worker();
         }
-		line_count++;
-
 */
+		line_count++;
 	}
 
     // Process the remaining lines which are less than CHUNK_SIZE
 	if (not chunk->empty())
-		pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] () {
-			process_chunk(chunk, chunk_n * CHUNK_SIZE + 1, out_dir);
+	{
+		pool.add_job([chunk = std::move(chunk), docid_start, chunk_n, out_dir]() {
+			process_chunk(chunk, docid_start, chunk_n, out_dir);
 		});
+		chunk_n += 1;
+	}
 
 	pool.wait_all_jobs();
 
@@ -219,7 +222,8 @@ int main(int argc, char** argv)
 	write_metadata(out_dir, line_count - 1);
 
 	const auto stop_time = std::chrono::steady_clock::now();
-	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s\n";
+	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s"
+		<< " " << (chunk_n) << " indices generated\n";
 
     return 0;
 }

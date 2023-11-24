@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <list>
 #include "../variable_blocks.hpp"
 #include "diskmap.hpp"
 
@@ -167,11 +168,11 @@ void merge(std::ostream &out_stream, std::vector<disk_map<Value, B>> maps, std::
 		disk_map<Value, B>::iterator curr, end;
 	};
 
-	std::vector<pos> positions;
+	std::list<pos> positions;
 	disk_map_writer<Value, B> global(out_stream);
 
-	for (const auto &map:maps)
-		positions.emplace_back(map.begin(), map.end());
+	for (auto &map : maps)
+		positions.push_back({map.begin(), map.end()});
 
 	while(not positions.empty())
 	{
@@ -184,7 +185,10 @@ void merge(std::ostream &out_stream, std::vector<disk_map<Value, B>> maps, std::
 		for(auto it = positions.begin(); it != positions.end(); )
 		{
 			if(it->curr->first != min)
+			{
+				++it;
 				continue;
+			}
 			values.push_back(it->curr->second);
 
 			++(it->curr);

@@ -210,3 +210,89 @@ TEST_F(DiskMapVariable, variable_data)
 
 }
 
+struct Merger: public testing::Test
+{
+	std::map<std::string, int> map1 = {
+			{"corea", 1},
+			{"zorro", 5},
+			{"kkkkkkk", 50},
+			{"pechino", 0},
+			{"cisterna", 100}
+	};
+
+	std::map<std::string, int> map2 = {
+			{"corea", 4},
+			{"banano", 5},
+			{"ewew", 50},
+			{"pacone", 0},
+			{"pechino", 69},
+			{"cisterna", 150}
+	};
+
+	std::map<std::string, int> map3 = {
+			{"corea", 5},
+			{"banano", 5},
+			{"ewew", 50},
+			{"pacone", 0},
+			{"pechino", 69},
+			{"ewew", 50},
+			{"cisterna", 250}, {"zorro", 5}, {"kkkkkkk", 50}
+	};
+
+	std::string filename1 = testing::TempDir() + "disk_map_test2_a";
+	std::string filename2 = testing::TempDir() + "disk_map_test2_b";
+
+	Merger()
+	{
+		std::ofstream file1(filename1, std::ios::binary | std::ios::trunc);
+		std::ofstream file2(filename2, std::ios::binary | std::ios::trunc);
+
+		codes::disk_map_writer<uint64_t ,test_page_size> diskMapWriter1(file1);
+		codes::disk_map_writer<uint64_t ,test_page_size> diskMapWriter2(file2);
+
+		for(const auto &p : map1)
+			diskMapWriter1.add(p);
+
+		for(const auto &p : map2)
+			diskMapWriter2.add(p);
+
+		diskMapWriter1.finalize();
+		diskMapWriter2.finalize();
+	}
+};
+
+TEST_F(Merger, merge_test)
+{
+	memory_mmap file1mem(filename1);
+	memory_mmap file2mem(filename2);
+
+	codes::disk_map<uint64_t ,test_page_size> diskMap1(file1mem);
+	codes::disk_map<uint64_t ,test_page_size> diskMap2(file2mem);
+
+	auto filename3 = testing::TempDir() + "disk_map_test2_3";
+	std::ofstream file3(filename3, std::ios::binary | std::ios::trunc);
+
+	auto pol = []([[maybe_unused]] const std::string& key, const std::vector<uint64_t >& vals)
+	{
+		return std::accumulate(vals.begin(), vals.end(), 0llu);
+	};
+
+	codes::merge<uint64_t, test_page_size>(file3,{diskMap1, diskMap2}, pol);
+	file3.close();
+
+	memory_mmap file3mem(filename3);
+	codes::disk_map<int,test_page_size> diskMap3(file3mem);
+
+	ASSERT_EQ(diskMap3.size(), map3.size());
+
+	auto it =  diskMap3.begin();
+	size_t index = 0;
+	for(auto it_test = map3.begin(); it_test != map3.end(); ++it, ++it_test, ++index)
+	{
+		ASSERT_EQ(it_test->first, it->first) << "index " << index << " at offset " << std::hex << it.memory_offset() << std::dec;
+		ASSERT_EQ(it_test->second, it->second) << "index " << index << "at offset " << std::hex << it.memory_offset() << std::dec;
+	}
+
+	ASSERT_EQ(it, diskMap3.end()) << it.memory_offset();
+}
+

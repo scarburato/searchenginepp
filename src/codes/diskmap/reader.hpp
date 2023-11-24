@@ -49,7 +49,6 @@ private:
 public:
 	class iterator{
 	public:
-	public:
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
 		using value_type = std::pair<std::string, Value>;
@@ -160,7 +159,6 @@ public:
 		}
 
 	public:
-
 		iterator(disk_map& p, size_t off, size_t index, size_t current_block_):
 				parent(p), offset_to_datum(off), index(index), current_block(current_block_)
 		{
@@ -170,6 +168,16 @@ public:
 				parse(offset_to_datum);
 			}
 		}
+
+		/*iterator& operator=(const iterator& it2)
+		{
+			parent = it2.parent;
+			offset_to_datum = it2.offset_to_datum;
+			offset_to_next_datum = it2.offset_to_next_datum;
+			index = it2.index;
+			current_block = it2.index;
+			current = it2.current;
+		}*/
 
 		iterator& operator++()
 		{
