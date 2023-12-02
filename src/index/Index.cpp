@@ -59,7 +59,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	const bool doclen_required = scorer.needs_doc_metadata();
 
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
-	// be pop
+	// be popped
 	std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>> results;
 
 	std::list<decoder_its_t> posting_lists_its; //@fixme make it work with std::vector
@@ -177,4 +177,15 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	return final_results;
 }
 
+Index::PostingList Index::PostingList::create(Index* index, LexiconValue& lv)
+{
+	using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
+	using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
+
+	auto docid_decoder = docid_decoder_t(index->inverted_indices + lv.start_pos_docid, index->inverted_indices + lv.end_pos_docid);
+	auto freq_decoder = freq_decoder_t(index->inverted_indices_freqs + lv.start_pos_freq, index->inverted_indices_freqs + lv.end_pos_freq);
+
+	return Index::PostingList(index, docid_decoder, freq_decoder);
 }
+
+} // namespace sindex

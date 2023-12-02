@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <set>
 #include <unordered_map>
 #include <vector>
 #include "../codes/diskmap/diskmap.hpp"
 #include "../codes/variable_blocks.hpp"
+#include "../codes/unary.hpp"
 #include "types.hpp"
 #include "../util/memory.hpp"
 #include "query_scorer.hpp"
@@ -65,6 +68,32 @@ public:
 
 	void set_scorer(QueryScorer& qs) {scorer = qs;}
 	std::vector<result_t> query(std::set<std::string>& query, size_t top_k = 10);
+
+	class PostingList
+	{
+		using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
+		using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
+		Index *index;
+		docid_decoder_t::DecodeIterator docid_begin, docid_end;
+		freq_decoder_t::DecodeIterator freq_begin, freq_end;
+
+
+	public:
+		class iterator
+		{
+			docid_decoder_t::DecodeIterator docid_curr;
+			freq_decoder_t::DecodeIterator freq_curr;
+		};
+
+		PostingList(Index* index, docid_decoder_t docid_dec, freq_decoder_t freq_dec):
+			index(index), docid_begin(docid_dec.begin()), docid_end(docid_dec.end()),
+			freq_begin(freq_dec.begin()), freq_end(freq_dec.end()) {}
+
+		iterator begin() const;
+		iterator end() const;
+
+		static PostingList create(Index* index, LexiconValue& lv);
+	};
 };
 
 }
