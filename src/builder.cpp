@@ -19,10 +19,11 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 // Chunks' sizes
 constexpr size_t MAX_CHUNK_SPACE = 675'000'000;
 
-std::map<std::string, sindex::freq_t> global_lexicon;
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
+std::vector<std::filesystem::path> partial_lexicons_paths;
 
 // At most one thread should write on disk at a given time
+// it is also used to access the global vector with the lexicons' paths
 std::mutex disk_writer_mutex;
 
 /*
@@ -85,9 +86,6 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	// Wait for exclusive access to disk
 	std::lock_guard<std::mutex> guard(disk_writer_mutex);
 
-	for (const auto &[term, n]: indexBuilder.get_n_docs_view())
-		global_lexicon[term] += n;
-
 	global_doc_len_sum += doc_len_sum;
 	const auto stop_time_proc = std::chrono::steady_clock::now();
 
@@ -98,8 +96,11 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids", std::ios_base::binary);
 	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs", std::ios_base::binary);
-	auto lexicon = std::ofstream(out_dir/base_name/"lexicon", std::ios_base::binary);
+	const auto lexicon_path = out_dir/base_name/"lexicon";
+	auto lexicon = std::ofstream(lexicon_path, std::ios_base::binary);
 	auto doc_index = std::ofstream(out_dir/base_name/"document_index", std::ios_base::binary);
+
+	partial_lexicons_paths.push_back(lexicon_path);
 
 	indexBuilder.write_to_disk(pl_docids, pl_freqs, lexicon, doc_index);
 
@@ -116,8 +117,8 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	std::ofstream lexicon_teletype(out_dir / "global_lexicon", std::ios::binary);
 	codes::disk_map_writer<sindex::freq_t> lexicon_writer(lexicon_teletype);
 
-	for (const auto& pair : global_lexicon)
-		lexicon_writer.add(pair);
+	//for (const auto& pair : global_lexicon)
+	//	lexicon_writer.add(pair);
 
 	lexicon_writer.finalize();
 }
