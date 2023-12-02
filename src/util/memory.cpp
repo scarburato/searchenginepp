@@ -35,9 +35,19 @@ memory_mmap::memory_mmap(const std::string &filename)
 	buff_size = s;
 }
 
+memory_mmap::memory_mmap(memory_mmap &&other)
+{
+	buff = other.buff;
+	buff_size = other.buff_size;
+
+	other.buff = nullptr;
+	other.buff_size = 0;
+}
+
 memory_mmap::~memory_mmap()
 {
-	munmap((void *) buff, buff_size);
+	if(buff)
+		munmap((void *) buff, buff_size);
 }
 
 std::pair<uint8_t *, size_t> memory_mmap::get() const
