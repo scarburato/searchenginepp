@@ -277,7 +277,10 @@ TEST_F(Merger, merge_test)
 		return std::accumulate(vals.begin(), vals.end(), 0llu);
 	};
 
-	codes::merge<uint64_t, test_page_size>(file3,{diskMap1, diskMap2}, pol);
+	codes::merge<uint64_t, codes::disk_map<uint64_t ,test_page_size>::iterator, test_page_size>(
+			file3,
+			{{diskMap1.begin(), diskMap1.end()}, {diskMap2.begin(), diskMap2.end()}},
+			pol);
 	file3.close();
 
 	memory_mmap file3mem(filename3);

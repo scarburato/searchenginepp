@@ -161,19 +161,24 @@ public:
 
 };
 
-template<class Value, size_t B = BLOCK_SIZE>
-void merge(std::ostream &out_stream, std::vector<disk_map<Value, B>> maps, std::function<Value(const std::string&, const std::vector<Value>&)> merge_policy)
+template<class Value, class InputIterator, size_t B = BLOCK_SIZE>
+void merge(std::ostream &out_stream, std::initializer_list<std::pair<InputIterator, InputIterator>> maps, std::function<Value(const std::string&, const std::vector<Value>&)> merge_policy)
 {
+	// Make sure input and output vals are the same
+	static_assert(
+			std::is_same_v<typename InputIterator::value_type, typename std::pair<std::string,Value>>,
+			"Input and output values must have the same data type!");
+
 	struct pos
 	{
-		typename disk_map<Value, B>::iterator curr, end;
+		InputIterator curr, end;
 	};
 
 	std::list<pos> positions;
 	disk_map_writer<Value, B> global(out_stream);
 
-	for (auto &map : maps)
-		positions.push_back({map.begin(), map.end()});
+	for (auto& [begin, end] : maps)
+		positions.push_back({begin, end});
 
 	while(not positions.empty())
 	{
