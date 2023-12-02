@@ -98,7 +98,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids", std::ios_base::binary);
 	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs", std::ios_base::binary);
-	auto lexicon = std::ofstream(out_dir/base_name/"lexicon", std::ios_base::binary);
+	auto lexicon = std::ofstream(out_dir/base_name/"lexicon_temp", std::ios_base::binary);
 	auto doc_index = std::ofstream(out_dir/base_name/"document_index", std::ios_base::binary);
 
 	indexBuilder.write_to_disk(pl_docids, pl_freqs, lexicon, doc_index);
@@ -126,6 +126,16 @@ void write_metadata(const std::filesystem::path& out_dir, const size_t ndocs) {
 	std::ofstream metadata(out_dir / "metadata", std::ios::binary);
 	metadata.write((char*)&global_doc_len_sum, sizeof(sindex::doclen_t));
 	metadata.write((char*)&ndocs, sizeof(size_t));
+}
+
+void write_sigma_lexicon(const std::filesystem::path& out_dir) {
+	std::ifstream lexicon_teletype(out_dir / "lexicon_temp", std::ios::binary);
+	codes::disk_map lexicon_reader(lexicon_teletype);
+
+	std::pair<std::string, sindex::freq_t> pair;
+	while (lexicon_reader.next(pair)) {
+		std::cout << "Term: " << pair.first << ", Frequency: " << pair.second << std::endl;
+	}
 }
 
 int main(int argc, char** argv)

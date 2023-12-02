@@ -14,7 +14,8 @@
 #include "diskmap.hpp"
 
 
-namespace codes{
+namespace codes
+{
 
 template<class Value, size_t B = BLOCK_SIZE>
 class disk_map{

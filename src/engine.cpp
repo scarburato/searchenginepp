@@ -25,7 +25,7 @@ struct index_worker_t
 	sindex::Index index;
 
 	index_worker_t(const std::filesystem::path& db, memory_area& metadata, sindex::Index::global_lexicon_t& global_lexicon):
-			local_lexicon_mem(db/"lexicon"),
+			local_lexicon_mem(db/"lexicon_temp"),
 			local_lexicon(local_lexicon_mem),
 			iid_mem(db/"posting_lists_docids"),
 			iif_mem(db/"posting_lists_freqs"),
