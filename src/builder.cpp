@@ -186,22 +186,7 @@ int main(int argc, char** argv)
 			// Wait for a spot before we continue
 			pool.wait_for_free_worker();
 		}
-/*
- * COSA CIERA PRIMA
-        if (line_count % CHUNK_SIZE == 0)
-        {
-			pool.add_job([chunk = std::move(chunk), chunk_n, out_dir] {
-				process_chunk(chunk, chunk_n * CHUNK_SIZE + 1, out_dir);
-			});
-			chunk_n += 1;
 
-			// Allocate new chunk for next round
-            chunk = std::make_shared<std::vector<doc_tuple_t>>();
-
-			// Wait for a spot before we continue
-			pool.wait_for_free_worker();
-        }
-*/
 		line_count++;
 	}
 
@@ -220,6 +205,8 @@ int main(int argc, char** argv)
 	// Write global_lexicon using disk_map_writer
 	write_global_lexicon_to_disk_map(out_dir);
 	write_metadata(out_dir, line_count - 1);
+
+	//@TODO: calculate sigma of every term in the lexicon
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s"

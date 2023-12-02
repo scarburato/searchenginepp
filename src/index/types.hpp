@@ -53,6 +53,67 @@ struct LexiconValue
 
 };
 
+struct SigmaLexiconValue : public LexiconValue
+{
+	score_t bm25_sigma;
+	score_t tfidf_sigma;
+	struct skip_pointer_t
+	{
+		score_t bm25_ub;
+		score_t tfidf_ub;
+		docid_t last_docid;
+	};
+	std::vector<skip_pointer_t> skip_pointers;
+
+	static constexpr size_t serialize_size = 0;
+	static constexpr size_t fixed_point_factor = 1e4;
+
+	std::vector<uint64_t> serialize () const
+	{
+		std::vector<uint64_t> ser;
+
+		// First part of data struct serialized as before
+		ser.insert(ser.end(), LexiconValue::serialize().begin(), LexiconValue::serialize().end());
+		
+		// Global sigmas
+		ser.push_back(static_cast<unsigned long>(bm25_sigma * fixed_point_factor));
+		ser.push_back(static_cast<unsigned long>(tfidf_sigma * fixed_point_factor));
+
+		// Add sigma values 'n skip list
+		for (const auto& sp : skip_pointers)
+			ser.insert(ser.end(), {
+				static_cast<unsigned long>(sp.bm25_ub * fixed_point_factor),
+				static_cast<unsigned long>(sp.tfidf_ub * fixed_point_factor),
+				sp.last_docid
+			});
+		
+		return ser;
+	}
+
+	static SigmaLexiconValue deserialize(const std::vector<uint64_t>& ser)
+	{
+		SigmaLexiconValue slv;
+		slv.start_pos_docid = ser[0];
+		slv.end_pos_docid = ser[1];
+		slv.start_pos_freq = ser[2];
+		slv.end_pos_freq = ser[3];
+		slv.n_docs = ser[4];
+		slv.bm25_sigma = ser[5] / static_cast<double>(fixed_point_factor);
+		slv.tfidf_sigma = ser[6] / static_cast<double>(fixed_point_factor);
+
+		// Deserialize skip list
+		assert((ser.size() - 7) % 3 == 0);
+		for (size_t i = 7; i < ser.size(); i += 3)
+			slv.skip_pointers.push_back({
+				.bm25_ub = ser[i] / static_cast<double>(fixed_point_factor),
+				.tfidf_ub = ser[i + 1] / static_cast<double>(fixed_point_factor),
+				.last_docid = static_cast<docid_t>(ser[i + 2])
+			});
+		
+		return slv;
+	}
+};
+
 template<typename EncondedDataIterator>
 using IndexDecoder = codes::VariableBlocksDecoder<EncondedDataIterator, docid_t>;
 
