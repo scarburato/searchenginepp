@@ -20,7 +20,7 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 constexpr size_t MAX_CHUNK_SPACE = 675'000'000;
 
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
-std::vector<std::filesystem::path> partial_lexicons_paths;
+std::vector<std::filesystem::path> index_folders_paths;
 
 // At most one thread should write on disk at a given time
 // it is also used to access the global vector with the lexicons' paths
@@ -96,11 +96,10 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids", std::ios_base::binary);
 	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs", std::ios_base::binary);
-	const auto lexicon_path = out_dir/base_name/"lexicon_temp";
-	auto lexicon = std::ofstream(lexicon_path, std::ios_base::binary);
+	auto lexicon = std::ofstream(out_dir/base_name/"lexicon_temp", std::ios_base::binary);
 	auto doc_index = std::ofstream(out_dir/base_name/"document_index", std::ios_base::binary);
 
-	partial_lexicons_paths.push_back(lexicon_path);
+	index_folders_paths.push_back(out_dir/base_name);
 
 	indexBuilder.write_to_disk(pl_docids, pl_freqs, lexicon, doc_index);
 
