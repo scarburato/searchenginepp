@@ -114,12 +114,38 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	std::ofstream lexicon_teletype(out_dir / "global_lexicon", std::ios::binary);
-	codes::disk_map_writer<sindex::freq_t> lexicon_writer(lexicon_teletype);
 
-	//for (const auto& pair : global_lexicon)
-	//	lexicon_writer.add(pair);
+	// Open up all files and maps from the local lexicon
+	struct lexicon_temp {memory_mmap file; codes::disk_map<sindex::LexiconValue> lexicon;};
+	std::vector<std::unique_ptr<lexicon_temp>> lexica;
+	lexica.reserve(index_folders_paths.size());
 
-	lexicon_writer.finalize();
+	for(const auto& db_path : index_folders_paths)
+	{
+		memory_mmap lexicon_mmap(db_path/"lexicon");
+
+		lexica.emplace_back(
+				std::make_unique<lexicon_temp>(
+						std::move(lexicon_mmap), codes::disk_map<sindex::LexiconValue>(lexicon_mmap)));
+	}
+
+	// Preparing merge
+	using iterator = codes::disk_map<sindex::LexiconValue>::iterator;
+	std::vector<std::pair<iterator, iterator>> ranges;
+	ranges.reserve(lexica.size());
+
+	// Fill ranges
+	for(const auto& lexicon : lexica)
+		ranges.emplace_back(lexicon->lexicon.begin(), lexicon->lexicon.end());
+
+	const auto filter_f = [](const sindex::LexiconValue& v) -> sindex::freq_t {return v.n_docs;};
+	const auto merge_f = [](const std::string& key, const std::vector<sindex::freq_t>& values) {
+		return std::accumulate(values.begin(), values.end(), (sindex::freq_t)0);
+	};
+
+	// Merge
+	codes::merge<sindex::freq_t, iterator, codes::BLOCK_SIZE, sindex::LexiconValue>(lexicon_teletype, ranges, merge_f, filter_f);
+	lexicon_teletype.flush();
 }
 
 void write_metadata(const std::filesystem::path& out_dir, const size_t ndocs) {
@@ -216,10 +242,15 @@ int main(int argc, char** argv)
 
 	pool.wait_all_jobs();
 
+	const auto stop_time_1 = std::chrono::steady_clock::now();
+	std::cout << "Indices built in " << (stop_time_1 - start_time) / 1.0s << "s" << std::endl;
 
 	// Write global_lexicon using disk_map_writer
 	write_global_lexicon_to_disk_map(out_dir);
 	write_metadata(out_dir, line_count - 1);
+
+	const auto stop_time_2 = std::chrono::steady_clock::now();
+	std::cout << "Built global lexicon from local lexica in " << (stop_time_2 - stop_time_1) / 1.0ms << "ms" << std::endl;
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s"
