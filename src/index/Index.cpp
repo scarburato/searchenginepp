@@ -177,15 +177,37 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	return final_results;
 }
 
-Index::PostingList Index::PostingList::create(Index* index, LexiconValue& lv)
+Index::PostingList::PostingList(Index const *index, const std::string& term, const LexiconValue* lv):
+	index(index),
+	lv(lv),
+	docid_dec(index->inverted_indices + lv->start_pos_docid, index->inverted_indices + lv->end_pos_docid),
+	freq_dec(index->inverted_indices_freqs + lv->start_pos_freq, index->inverted_indices_freqs + lv->end_pos_freq)
 {
-	using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
-	using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
+	// Retrive n_i from global lexicon
+	auto global_term_info_it = index->global_lexicon.find(term);
+	if (global_term_info_it == index->global_lexicon.end()) // IMPOSSIBLE!
+			abort();
 
-	auto docid_decoder = docid_decoder_t(index->inverted_indices + lv.start_pos_docid, index->inverted_indices + lv.end_pos_docid);
-	auto freq_decoder = freq_decoder_t(index->inverted_indices_freqs + lv.start_pos_freq, index->inverted_indices_freqs + lv.end_pos_freq);
+	// From n_i compute compute this posting list's IDF
+	idf = QueryTFIDFScorer::idf(lv->n_docs, global_term_info_it->second);
+}
 
-	return Index::PostingList(index, docid_decoder, freq_decoder);
+Index::PostingList::iterator Index::PostingList::begin() const
+{
+	auto it = iterator(docid_dec.begin(), freq_dec.begin());
+	it.current = std::make_pair(*it.docid_curr, *it.freq_curr);
+	return it;
+}
+
+Index::PostingList::iterator Index::PostingList::end() const
+{
+	return iterator(docid_dec.end(), freq_dec.end());
+}
+
+score_t Index::PostingList::score(const Index::PostingList::iterator& it, const QueryScorer& scorer) const
+{
+	doclen_t dl = scorer.needs_doc_metadata() ? index->document_index[it.current.first - index->base_docid].lenght : 0;
+	return scorer.score(it.current.second, idf, dl, index->avgdl);
 }
 
 } // namespace sindex

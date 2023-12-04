@@ -1,4 +1,5 @@
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -8,7 +9,9 @@
 #include <chrono>
 #include <filesystem>
 #include <thread>
+#include "index/query_scorer.hpp"
 #include "index/types.hpp"
+#include "index_worker.hpp"
 #include "normalizer/WordNormalizer.hpp"
 #include "indexBuilder/IndexBuilder.hpp"
 #include "util/thread_pool.hpp"
@@ -18,6 +21,7 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
 constexpr size_t MAX_CHUNK_SPACE = 675'000'000;
+constexpr size_t SKIP_BLOCK_SIZE = 2000;
 
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
 std::vector<std::filesystem::path> index_folders_paths;
@@ -128,14 +132,42 @@ void write_metadata(const std::filesystem::path& out_dir, const size_t ndocs) {
 	metadata.write((char*)&ndocs, sizeof(size_t));
 }
 
-void write_sigma_lexicon(const std::filesystem::path& out_dir) {
-	std::ifstream lexicon_teletype(out_dir / "lexicon_temp", std::ios::binary);
-	codes::disk_map lexicon_reader(lexicon_teletype);
+/**
+ * This function computes the sigma for each term in the local lexicon and writes it to disk
+ * It [will] also computes the skipping list. @todo 
+ * @param dir the directory where the index is stored
+ */
+void write_sigma_lexicon(const std::filesystem::path& dir) {
+	// Load all db stuff
+	memory_mmap metadata_mem(dir/".."/"metadata");
+	memory_mmap global_lexicon_mem(dir/".."/"global_lexicon");
+	sindex::Index::global_lexicon_t global_lexicon(global_lexicon_mem);
+	sindex::QueryTFIDFScorer tfidf_scorer;
+	sindex::QueryBM25Scorer bm25_scorer;
 
-	std::pair<std::string, sindex::freq_t> pair;
-	while (lexicon_reader.next(pair)) {
-		std::cout << "Term: " << pair.first << ", Frequency: " << pair.second << std::endl;
+	index_worker_t index_worker(dir, metadata_mem, global_lexicon, tfidf_scorer);
+
+	std::ofstream sigma_lexicon(dir/"lexicon", std::ios::binary);
+
+	codes::disk_map_writer<sindex::SigmaLexiconValue> sigma_lexicon_writer(sigma_lexicon);
+
+	for(const auto& [term, lv] : index_worker.index.get_local_lexicon())
+	{
+		sindex::SigmaLexiconValue slv = lv;
+
+		auto pl = index_worker.index.get_posting_list(term, &lv);
+
+		// For each posting we score it and update the sigma, if necessary
+		for(auto pl_it = pl.begin(); pl_it != pl.end(); ++pl_it)
+		{
+			slv.tfidf_sigma = std::max(slv.tfidf_sigma, pl.score(pl_it, tfidf_scorer));
+			slv.bm25_sigma = std::max(slv.bm25_sigma, pl.score(pl_it, bm25_scorer));
+		}
+
+		// Write the new value
+		sigma_lexicon_writer.add(term, slv);
 	}
+	sigma_lexicon_writer.finalize();
 }
 
 int main(int argc, char** argv)
@@ -216,7 +248,9 @@ int main(int argc, char** argv)
 	write_global_lexicon_to_disk_map(out_dir);
 	write_metadata(out_dir, line_count - 1);
 
-	//@TODO: calculate sigma of every term in the lexicon
+	// Create skip-list and compute their sigma
+	for(const auto& path : index_folders_paths)
+		write_sigma_lexicon(path);
 
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s"

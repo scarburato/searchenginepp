@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <set>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "../codes/diskmap/diskmap.hpp"
 #include "../codes/variable_blocks.hpp"
@@ -73,27 +74,55 @@ public:
 	{
 		using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
 		using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
-		Index *index;
-		docid_decoder_t::DecodeIterator docid_begin, docid_end;
-		freq_decoder_t::DecodeIterator freq_begin, freq_end;
+		
+		Index const *index;
+		LexiconValue const *lv;
+		double idf;
 
+		docid_decoder_t docid_dec;
+		freq_decoder_t freq_dec;
 
 	public:
 		class iterator
 		{
 			docid_decoder_t::DecodeIterator docid_curr;
 			freq_decoder_t::DecodeIterator freq_curr;
+
+			std::pair<docid_t, freq_t> current;
+
+		public:
+
+		 	const std::pair<docid_t, freq_t>& operator*() const {return current;}
+
+			iterator& operator++() 
+			{
+				++docid_curr;
+				++freq_curr;
+				current.first = *docid_curr;
+				current.second = *freq_curr;
+				return *this;
+			}
+
+			bool operator==(const iterator& b) const {return docid_curr == b.docid_curr;}
+			bool operator!=(const iterator& b) const {return !(*this == b);}
+
+			iterator(docid_decoder_t::DecodeIterator docid_curr, freq_decoder_t::DecodeIterator freq_curr):
+				docid_curr(docid_curr), freq_curr(freq_curr)
+			{}
+
+			friend class PostingList;
 		};
 
-		PostingList(Index* index, docid_decoder_t docid_dec, freq_decoder_t freq_dec):
-			index(index), docid_begin(docid_dec.begin()), docid_end(docid_dec.end()),
-			freq_begin(freq_dec.begin()), freq_end(freq_dec.end()) {}
+
+		PostingList(Index const *index, const std::string& term, const LexiconValue* lv);
+		score_t score(const PostingList::iterator& it, const QueryScorer& scorer) const;
 
 		iterator begin() const;
 		iterator end() const;
-
-		static PostingList create(Index* index, LexiconValue& lv);
 	};
+
+	PostingList get_posting_list(const std::string& term, const LexiconValue* lv) const {return PostingList(this, term, lv);}
+	local_lexicon_t& get_local_lexicon() {return local_lexicon;}
 };
 
 }

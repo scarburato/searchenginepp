@@ -55,18 +55,25 @@ struct LexiconValue
 
 struct SigmaLexiconValue : public LexiconValue
 {
-	score_t bm25_sigma;
-	score_t tfidf_sigma;
+	score_t bm25_sigma = 0;
+	score_t tfidf_sigma = 0;
 	struct skip_pointer_t
 	{
 		score_t bm25_ub;
 		score_t tfidf_ub;
 		docid_t last_docid;
+		size_t docid_offset;
+		size_t freq_offset;
 	};
 	std::vector<skip_pointer_t> skip_pointers;
 
 	static constexpr size_t serialize_size = 0;
 	static constexpr size_t fixed_point_factor = 1e4;
+
+	SigmaLexiconValue(const LexiconValue& lv) : LexiconValue(lv) 
+	{};
+
+	SigmaLexiconValue() = default;
 
 	std::vector<uint64_t> serialize () const
 	{
@@ -84,7 +91,9 @@ struct SigmaLexiconValue : public LexiconValue
 			ser.insert(ser.end(), {
 				static_cast<unsigned long>(sp.bm25_ub * fixed_point_factor),
 				static_cast<unsigned long>(sp.tfidf_ub * fixed_point_factor),
-				sp.last_docid
+				sp.last_docid,
+				sp.docid_offset,
+				sp.freq_offset
 			});
 		
 		return ser;
@@ -102,12 +111,14 @@ struct SigmaLexiconValue : public LexiconValue
 		slv.tfidf_sigma = ser[6] / static_cast<double>(fixed_point_factor);
 
 		// Deserialize skip list
-		assert((ser.size() - 7) % 3 == 0);
-		for (size_t i = 7; i < ser.size(); i += 3)
+		assert((ser.size() - 7) % 5 == 0);
+		for (size_t i = 7; i < ser.size(); i += 5)
 			slv.skip_pointers.push_back({
 				.bm25_ub = ser[i] / static_cast<double>(fixed_point_factor),
 				.tfidf_ub = ser[i + 1] / static_cast<double>(fixed_point_factor),
-				.last_docid = static_cast<docid_t>(ser[i + 2])
+				.last_docid = static_cast<docid_t>(ser[i + 2]),
+				.docid_offset = ser[i + 3],
+				.freq_offset = ser[i + 4]
 			});
 		
 		return slv;
