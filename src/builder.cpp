@@ -126,7 +126,7 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 
 	for(const auto& db_path : index_folders_paths)
 	{
-		memory_mmap lexicon_mmap(db_path/"lexicon");
+		memory_mmap lexicon_mmap(db_path/"lexicon_temp");
 
 		lexica.emplace_back(
 				std::make_unique<lexicon_temp>(

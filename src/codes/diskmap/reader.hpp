@@ -244,7 +244,11 @@ public:
 
 		// Now iterate all string 'til I see it
 		iterator block_start_it(*this, block_number * B, block_headers_it->second, block_number);
-		iterator block_end_it(*this, (block_number + 1) * B, (block_headers_it + 1)->second, block_number + 1);
+
+		// Notice how we check if the next block is valid, if it's not we set the end of the block to M,
+		// that is an invalid index, this avoids to deference/parse invalid data
+		const auto block_end_start_index = block_headers_it + 1 == index_string.end() ? metadata->M : (block_headers_it + 1)->second;
+		iterator block_end_it(*this, (block_number + 1) * B, block_end_start_index, block_number + 1);
 
 		// We may as well stop earlier if it->second > q
 		for(auto it = block_start_it; it != block_end_it and it->first <= q; ++it)
