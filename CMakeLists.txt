@@ -4,11 +4,7 @@ project(progetto)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fno-exceptions")
-<<<<<<< HEAD
-set(CMAKE_CXX_FLAGS_DEBUG "-O1 -Wall -Wextra")
-=======
 set(CMAKE_CXX_FLAGS_DEBUG "-Og -O1 -Wall -Wextra")
->>>>>>> 2cbc83df23349e637229868d33fd65f863e53240
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast -DNDEBUG")
 
 option(USE_STEMMER "Enable or disable Snowball's stemmer and stopword removal" ON)
