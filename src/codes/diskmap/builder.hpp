@@ -161,19 +161,41 @@ public:
 
 };
 
-template<class Value, class InputIterator, size_t B = BLOCK_SIZE>
-void merge(std::ostream &out_stream, std::initializer_list<std::pair<InputIterator, InputIterator>> maps, std::function<Value(const std::string&, const std::vector<Value>&)> merge_policy)
+
+/**
+ * Merges multiple sorted ranges into a single one disk_map
+ * @tparam Value
+ * @tparam InputIterator
+ * @tparam B
+ * @tparam T
+ * @param out_stream
+ * @param maps
+ * @param merge_policy
+ * @param trasform_f
+ */
+template<class Value, class InputIterator, size_t B = BLOCK_SIZE, class T = Value>
+void merge(
+		std::ostream &out_stream,
+		const std::vector<std::pair<InputIterator, InputIterator>>& maps,
+		std::function<Value(const std::string&, const std::vector<Value>&)> merge_policy,
+		std::function<Value(const T&)> trasform_f = nullptr)
 {
 	// Make sure input and output vals are the same
-	static_assert(
+	if constexpr (std::is_same_v<Value, T>)
+		static_assert(
 			std::is_same_v<typename InputIterator::value_type, typename std::pair<std::string,Value>>,
 			"Input and output values must have the same data type!");
+	else
+		static_assert(
+			std::is_same_v<typename InputIterator::value_type, typename std::pair<std::string,T>>,
+			"Check trasform_f input type");
 
 	struct pos
 	{
 		InputIterator curr, end;
 	};
 
+	// Create a list of iterators to the input maps
 	std::list<pos> positions;
 	disk_map_writer<Value, B> global(out_stream);
 
@@ -184,27 +206,37 @@ void merge(std::ostream &out_stream, std::initializer_list<std::pair<InputIterat
 	{
 		std::string min;
 
+		// Find the minimum key
 		for(const auto &p : positions)
 			min = min.empty() ? p.curr->first : std::min(p.curr->first, min);
 
+		// Collect all values with the same key
 		std::vector<Value> values;
 		for(auto it = positions.begin(); it != positions.end(); )
 		{
+			// Skip iterators that are not pointing to the current min
 			if(it->curr->first != min)
 			{
 				++it;
 				continue;
 			}
-			values.push_back(it->curr->second);
 
+			// Copy value directly if no trasform function is supplied
+			if constexpr (std::is_same_v<Value, T>)
+				values.push_back(it->curr->second);
+			else // Otherwise trasform it
+				values.push_back(trasform_f(it->curr->second));
+
+			// Advance iterator and remove it if it's at the end
 			++(it->curr);
 			if(it->curr == it->end)
 				it = positions.erase(it);
 			else
 				++it;
 		}
-		Value merged = (values.size() == 1) ? values[0] : merge_policy(min, values);
 
+		// Merge the values, if necessary; then add them to the output map
+		Value merged = (values.size() == 1) ? values[0] : merge_policy(min, values);
 		global.add(min, merged);
 	}
 

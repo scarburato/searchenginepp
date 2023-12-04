@@ -18,6 +18,7 @@ class memory_mmap: public memory_area
 	size_t buff_size;
 public:
 	explicit memory_mmap(const std::string& filename);
+	memory_mmap(memory_mmap&&);
 	~memory_mmap() override;
 	std::pair<uint8_t *, size_t> get() const override;
 };
