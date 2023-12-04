@@ -93,6 +93,7 @@ public:
 		public:
 
 		 	const std::pair<docid_t, freq_t>& operator*() const {return current;}
+			const std::pair<docid_t, freq_t>* operator->() const {return &current;}
 
 			iterator& operator++() 
 			{

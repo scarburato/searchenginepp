@@ -59,8 +59,8 @@ struct SigmaLexiconValue : public LexiconValue
 	score_t tfidf_sigma = 0;
 	struct skip_pointer_t
 	{
-		score_t bm25_ub;
-		score_t tfidf_ub;
+		score_t bm25_ub = 0;
+		score_t tfidf_ub = 0;
 		docid_t last_docid;
 		size_t docid_offset;
 		size_t freq_offset;

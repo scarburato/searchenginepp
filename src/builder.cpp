@@ -21,7 +21,7 @@ typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
 constexpr size_t MAX_CHUNK_SPACE = 675'000'000;
-constexpr size_t SKIP_BLOCK_SIZE = 2000;
+constexpr size_t SKIP_BLOCK_SIZE = 2'000;
 
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
 std::vector<std::filesystem::path> index_folders_paths;
@@ -154,14 +154,36 @@ void write_sigma_lexicon(const std::filesystem::path& dir) {
 	for(const auto& [term, lv] : index_worker.index.get_local_lexicon())
 	{
 		sindex::SigmaLexiconValue slv = lv;
+		sindex::SigmaLexiconValue::skip_pointer_t current_skip;
+		size_t i = 1;
 
 		auto pl = index_worker.index.get_posting_list(term, &lv);
 
 		// For each posting we score it and update the sigma, if necessary
-		for(auto pl_it = pl.begin(); pl_it != pl.end(); ++pl_it)
+		for(auto pl_it = pl.begin(); pl_it != pl.end(); ++pl_it, ++i)
 		{
-			slv.tfidf_sigma = std::max(slv.tfidf_sigma, pl.score(pl_it, tfidf_scorer));
-			slv.bm25_sigma = std::max(slv.bm25_sigma, pl.score(pl_it, bm25_scorer));
+			const auto& [docid, freq] = *pl_it;
+
+			auto tfidf_score = pl.score(pl_it, tfidf_scorer);
+			auto bm25_score = pl.score(pl_it, bm25_scorer);
+
+
+			slv.tfidf_sigma = std::max(slv.tfidf_sigma, tfidf_score);
+			current_skip.tfidf_ub = std::max(current_skip.tfidf_ub, tfidf_score);
+
+			slv.bm25_sigma = std::max(slv.bm25_sigma, bm25_score);
+			current_skip.bm25_ub = std::max(current_skip.bm25_ub, bm25_score);
+			
+			// If we reached the end of the block
+			if (i % SKIP_BLOCK_SIZE == 0)
+			{
+				current_skip.last_docid = docid;
+				current_skip.docid_offset = i; // @fixme this is wrong
+				current_skip.freq_offset = i; // @fixme this is wrong
+				slv.skip_pointers.push_back(current_skip);
+				current_skip = {};
+			}
+			/** @todo calculate the right offset inside VariableBlocks and Unary iterators */
 		}
 
 		// Write the new value
