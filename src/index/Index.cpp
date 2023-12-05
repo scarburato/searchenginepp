@@ -42,12 +42,6 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 {
 	using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
 	using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
-	using decoder_its_t = struct {
-		docid_decoder_t::DecodeIterator docid_curr, docid_end;
-		freq_decoder_t::DecodeIterator freq_cur, freq_end;
-		freq_t document_freq;
-		double idf;
-	};
 
 	struct pending_result_t {
 		docid_t docid;
@@ -55,8 +49,6 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 
 		bool operator>(const pending_result_t& b) const {return score > b.score;}
 	};
-
-	const bool doclen_required = scorer.needs_doc_metadata();
 
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be popped
@@ -79,23 +71,17 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 			continue;
 		}
 
-		// Look this term's doc. freq
-		auto global_term_info_it = global_lexicon.find(*q_term_it);
-		if (global_term_info_it == global_lexicon.end()) // IMPOSSIBLE!
-			abort();
-
 		// Create 'n load posting list's info into vector
 		const auto& [term, posting_info] = *posting_info_it;
 
 		PostingList pl(this, term, posting_info);
+		auto it = pl.begin();
 
 		// n_docs_to_process = std::max(n_docs_to_process, posting_info.n_docs);
 
-		auto it = pl.begin();
-
 		docid_base = std::min(docid_base, it->first);
 
-		posting_lists_its.push_back({std::move(pl), std::move(it)});
+		posting_lists_its.push_back({pl, it});
 
 		++q_term_it;
 	}
@@ -181,7 +167,7 @@ Index::PostingList::PostingList(Index const *index, const std::string& term, con
 			abort();
 
 	// From n_i compute compute this posting list's IDF
-	idf = QueryTFIDFScorer::idf(lv.n_docs, global_term_info_it->second);
+	idf = QueryTFIDFScorer::idf(index->n_docs, global_term_info_it->second);
 }
 
 Index::PostingList::iterator Index::PostingList::begin() const
@@ -193,7 +179,7 @@ Index::PostingList::iterator Index::PostingList::begin() const
 
 Index::PostingList::iterator Index::PostingList::end() const
 {
-	return iterator(docid_dec.end(), freq_dec.end());
+	return {docid_dec.end(), freq_dec.end()};
 }
 
 score_t Index::PostingList::score(const Index::PostingList::iterator& it, const QueryScorer& scorer) const
