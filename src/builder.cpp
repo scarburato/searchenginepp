@@ -143,7 +143,7 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 		ranges.emplace_back(lexicon->lexicon.begin(), lexicon->lexicon.end());
 
 	const auto filter_f = [](const sindex::LexiconValue& v) -> sindex::freq_t {return v.n_docs;};
-	const auto merge_f = [](const std::string& key, const std::vector<sindex::freq_t>& values) {
+	const auto merge_f = []([[maybe_unused]] const std::string& key, const std::vector<sindex::freq_t>& values) {
 		return std::accumulate(values.begin(), values.end(), (sindex::freq_t)0);
 	};
 

@@ -137,7 +137,7 @@ Scratch::~Scratch()
 
 // Called by hs_scan everytime a Unicode char is matched
 static int remove_punctuation_handler (
-		unsigned int id,
+		[[maybe_unused]] unsigned int id,
 		unsigned long long from, unsigned long long to,
 		[[maybe_unused]] unsigned int flags, void *context)
 {

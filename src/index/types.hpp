@@ -10,11 +10,13 @@
 
 namespace sindex
 {
-typedef uint32_t docid_t;
+typedef uint64_t docid_t;
 typedef std::string docno_t;
 typedef uint64_t doclen_t;
 typedef size_t freq_t;
 typedef double score_t;
+
+constexpr docid_t DOCID_MAX = std::numeric_limits<docid_t>::max();
 
 struct result_t
 {

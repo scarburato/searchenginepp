@@ -40,9 +40,6 @@ Index::~Index()
 
 std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 {
-	using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
-	using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
-
 	struct pending_result_t {
 		docid_t docid;
 		score_t score;
@@ -114,7 +111,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 				results.pop();
 		}
 
-		docid_t next_docid = UINT64_MAX;
+		docid_t next_docid = DOCID_MAX;
 		// Move iterators to current docid or (the next closest one)
 		for(auto iterator_it = posting_lists_its.begin(); iterator_it != posting_lists_its.end(); )
 		{

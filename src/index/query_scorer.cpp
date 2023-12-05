@@ -26,7 +26,7 @@ static const int tab64[64] = {
 	return tab64[((uint64_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
 }
 
-score_t QueryTFIDFScorer::score(freq_t tf_term_doc, score_t idf, doclen_t dl, double avgdl) const
+score_t QueryTFIDFScorer::score(freq_t tf_term_doc, score_t idf, [[maybe_unused]] doclen_t dl, [[maybe_unused]] double avgdl) const
 {
 	if (tf_term_doc == 0)
 		return 0;
