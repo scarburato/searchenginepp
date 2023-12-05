@@ -183,7 +183,7 @@ void write_sigma_lexicon(const std::filesystem::path& dir) {
 		sindex::SigmaLexiconValue::skip_pointer_t current_skip;
 		size_t i = 1;
 
-		auto pl = index_worker.index.get_posting_list(term, &lv);
+		auto pl = index_worker.index.get_posting_list(term, lv);
 
 		// For each posting we score it and update the sigma, if necessary
 		for(auto pl_it = pl.begin(); pl_it != pl.end(); ++pl_it, ++i)

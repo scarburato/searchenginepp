@@ -76,7 +76,7 @@ public:
 		using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
 		
 		Index const *index;
-		LexiconValue const *lv;
+		LexiconValue lv;
 		double idf;
 
 		docid_decoder_t docid_dec;
@@ -111,18 +111,20 @@ public:
 				docid_curr(docid_curr), freq_curr(freq_curr)
 			{}
 
+			void nextG(docid_t, const iterator&);
+
 			friend class PostingList;
 		};
 
 
-		PostingList(Index const *index, const std::string& term, const LexiconValue* lv);
+		PostingList(Index const *index, const std::string& term, const LexiconValue& lv);
 		score_t score(const PostingList::iterator& it, const QueryScorer& scorer) const;
 
 		iterator begin() const;
 		iterator end() const;
 	};
 
-	PostingList get_posting_list(const std::string& term, const LexiconValue* lv) const {return PostingList(this, term, lv);}
+	PostingList get_posting_list(const std::string& term, const LexiconValue& lv) const {return PostingList(this, term, lv);}
 	local_lexicon_t& get_local_lexicon() {return local_lexicon;}
 };
 
