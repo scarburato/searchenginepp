@@ -303,9 +303,19 @@ int main(int argc, char** argv)
 
 	// Create skip-list and compute their sigma
 	for(const auto& path : index_folders_paths)
-		write_sigma_lexicon(path);
-	
+	{
+		pool.wait_for_free_worker();
+		pool.add_job([path]() {
+			write_sigma_lexicon(path);
+			std::cout << "(thread " << std::hex << std::this_thread::get_id() << std::dec << " )\t"
+					  << "Built skipping list and sigmas for " << path << std::endl;
+		});
+	}
+	pool.wait_all_jobs();
+
 	const auto stop_time = std::chrono::steady_clock::now();
+	std::cout << "Re-built local lexica in " << (stop_time - stop_time_2) / 1.0s << "s" << std::endl;
+
 	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s"
 		<< " " << (chunk_n) << " indices generated\n";
 

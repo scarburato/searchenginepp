@@ -10,45 +10,49 @@ constexpr size_t V_SIZE = 5;
 using Value = std::array<uint64_t, V_SIZE>;
 using VariableValue = std::vector<uint64_t>;
 
-static std::mt19937 gen(0xcafebabe); // mersenne_twister_engine seeded with rd()
-static std::uniform_int_distribution<char> distrib_chars('a', 'z');
-static std::uniform_int_distribution<uint64_t> distrib_vals(0, UINT64_MAX / 8);
-static std::uniform_real_distribution distrib_prob(0.0, 1.0);
-
-static std::string random_string()
+class Generator
 {
-	std::string str;
-	do
-		str += distrib_chars(gen);
-	while(distrib_prob(gen) <= 0.90);
-	return str;
-}
+	std::mt19937 gen{0xcafebabe};
+	std::uniform_int_distribution<char> distrib_chars{'a', 'z'};
+	std::uniform_int_distribution<uint64_t> distrib_vals{0, UINT64_MAX / 8};
+	std::uniform_real_distribution<double> distrib_prob{0.0, 1.0};
+public:
 
-static Value random_data()
-{
-	Value v;
-	for(size_t i = 0; i < V_SIZE; ++i)
-		v[i] = distrib_prob(gen) <= 0.333 ? distrib_vals(gen) : distrib_vals(gen) & 0b01111111;
-	return v;
-}
+	std::string random_string()
+	{
+		std::string str;
+		do
+			str += distrib_chars(gen);
+		while(distrib_prob(gen) <= 0.90);
+		return str;
+	}
 
-static VariableValue random_variable_data()
-{
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_int_distribution<size_t> distrib_size(1, 10);
-	
-	size_t size = distrib_size(gen);
-	VariableValue v(size);
-	
-	for(size_t i = 0; i < size; ++i)
-		v[i] = distrib_prob(gen) <= 0.333 ? distrib_vals(gen) : distrib_vals(gen) & 0b01111111;
-	
-	return v;
-}
+	Value random_data()
+	{
+		Value v;
+		for(size_t i = 0; i < V_SIZE; ++i)
+			v[i] = distrib_prob(gen) <= 0.333 ? distrib_vals(gen) : distrib_vals(gen) & 0b01111111;
+		return v;
+	}
+
+	VariableValue random_variable_data()
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<size_t> distrib_size(1, 10);
+
+		size_t size = distrib_size(gen);
+		VariableValue v(size);
+
+		for(size_t i = 0; i < size; ++i)
+			v[i] = distrib_prob(gen) <= 0.333 ? distrib_vals(gen) : distrib_vals(gen) & 0b01111111;
+
+		return v;
+	}
+};
 
 constexpr size_t test_page_size = 0x100;
-constexpr size_t test_cardinality = 8'500;
+constexpr size_t test_cardinality = 100'520;
 
 struct DiskTest: public testing::Test
 {
@@ -63,8 +67,9 @@ struct DiskTest: public testing::Test
 
 	DiskTest() {
 		// Generate random stuff
+		Generator g;
 		for(size_t i = 0; i < test_cardinality; ++i)
-			test_data[random_string()] = random_data();
+			test_data[g.random_string()] = g.random_data();
 
 		// Search test
 		for (const auto& t : test_search)
@@ -119,6 +124,19 @@ TEST_F(DiskTest, data_search)
 		ASSERT_EQ(it2->second, t.second);
 	}
 }
+
+TEST_F(DiskTest, data_search_complete)
+{
+	size_t index = 0;
+	for(auto it_test = test_data.begin(); it_test != test_data.end(); ++it_test, ++index)
+	{
+		auto it = map->find(it_test->first);
+		ASSERT_NE(it, map->end());
+		ASSERT_EQ(it_test->first, it->first) << "index " << index << " at offset " << std::hex << it.memory_offset() << std::dec;
+		ASSERT_EQ(it_test->second, it->second) << "index " << index << "at offset " << std::hex << it.memory_offset() << std::dec;
+	}
+}
+
 struct ss
 {
 	static constexpr size_t serialize_size = 0;
@@ -151,8 +169,9 @@ struct DiskMapVariable: public testing::Test
 	DiskMapVariable()
 	{
 		// Generate random stuff
+		Generator g;
 		for(size_t i = 0; i < test_cardinality; ++i)
-			test_data[random_string()] = random_variable_data();
+			test_data[g.random_string()] = g.random_variable_data();
 
 		// Search test
 		for (const auto& t : test_search)
