@@ -62,8 +62,9 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	// be popped
 	std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>> results;
 
-	std::list<decoder_its_t> posting_lists_its; //@fixme make it work with std::vector
-	size_t n_docs_to_process = 0;
+	struct PostingListHelper {PostingList pl; PostingList::iterator it;};
+	std::list<PostingListHelper> posting_lists_its; //@fixme make it work with std::vector
+	// size_t n_docs_to_process = 0; // Never used
 	docid_t docid_base = -1;
 
 	// Iterate over all query terms. We remove useless terms and create the iterators of their posting lists
@@ -85,22 +86,16 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 
 		// Create 'n load posting list's info into vector
 		const auto& [term, posting_info] = *posting_info_it;
-		auto docid_decoder = docid_decoder_t(inverted_indices + posting_info.start_pos_docid, inverted_indices + posting_info.end_pos_docid);
-		auto docid_decoder_begin = docid_decoder.begin();
-		auto freq_decoder = freq_decoder_t(inverted_indices_freqs + posting_info.start_pos_freq, inverted_indices + posting_info.end_pos_freq);
 
-		// Iterators will lose refs to their decoders, but that's ok bc they do not have references to them
-		posting_lists_its.push_back({
-			.docid_curr = docid_decoder_begin, .docid_end = docid_decoder.end(),
-			.freq_cur = freq_decoder.begin(), .freq_end = freq_decoder.end(),
+		PostingList pl(this, term, posting_info);
 
-			// some term's information
-			.document_freq = global_term_info_it->second,
-			.idf = QueryTFIDFScorer::idf(n_docs, global_term_info_it->second)
-		});
+		// n_docs_to_process = std::max(n_docs_to_process, posting_info.n_docs);
 
-		n_docs_to_process = std::max(n_docs_to_process, posting_info.n_docs);
-		docid_base = std::min(docid_base, (docid_t)*docid_decoder_begin);
+		auto it = pl.begin();
+
+		docid_base = std::min(docid_base, it->first);
+
+		posting_lists_its.push_back({std::move(pl), std::move(it)});
 
 		++q_term_it;
 	}
@@ -114,13 +109,13 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		score_t score = 0;
 
 		// Score current document
-		for(const auto& iterator : posting_lists_its)
+		for(auto& iterator : posting_lists_its)
 		{
-			if(*iterator.docid_curr != curr_docid)
+			const auto& [docid, freq] = *iterator.it;
+			if(docid != curr_docid)
 				continue;
 
-			doclen_t dl = doclen_required ? document_index[curr_docid - base_docid].lenght : 0;
-			score += scorer.score(*iterator.freq_cur, iterator.idf, dl, avgdl);
+			score += iterator.pl.score(iterator.it, scorer);
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results
@@ -137,18 +132,16 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		// Move iterators to current docid or (the next closest one)
 		for(auto iterator_it = posting_lists_its.begin(); iterator_it != posting_lists_its.end(); )
 		{
-			auto& iterator = *iterator_it;
-			while(iterator.docid_curr != iterator.docid_end and *iterator.docid_curr <= curr_docid)
-				++iterator.docid_curr, ++iterator.freq_cur;
+			iterator_it->it.nextG(curr_docid, iterator_it->pl.end());
 
 			// We exhausted this posting list, let's remove it
-			if(iterator.docid_curr == iterator.docid_end)
+			if(iterator_it->it == iterator_it->pl.end())
 			{
 				iterator_it = posting_lists_its.erase(iterator_it);
 				continue;
 			}
 
-			next_docid = std::min(next_docid, (docid_t)*iterator.docid_curr);
+			next_docid = std::min(next_docid, iterator_it->it->first);
 
 			// Continue
 			++iterator_it;
@@ -177,11 +170,10 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	return final_results;
 }
 
-Index::PostingList::PostingList(Index const *index, const std::string& term, const LexiconValue* lv):
-	index(index),
-	lv(lv),
-	docid_dec(index->inverted_indices + lv->start_pos_docid, index->inverted_indices + lv->end_pos_docid),
-	freq_dec(index->inverted_indices_freqs + lv->start_pos_freq, index->inverted_indices_freqs + lv->end_pos_freq)
+Index::PostingList::PostingList(Index const *index, const std::string& term, const LexiconValue& lv):
+	index(index), lv(lv),
+	docid_dec(index->inverted_indices + lv.start_pos_docid, index->inverted_indices + lv.end_pos_docid),
+	freq_dec(index->inverted_indices_freqs + lv.start_pos_freq, index->inverted_indices_freqs + lv.end_pos_freq)
 {
 	// Retrive n_i from global lexicon
 	auto global_term_info_it = index->global_lexicon.find(term);
@@ -189,7 +181,7 @@ Index::PostingList::PostingList(Index const *index, const std::string& term, con
 			abort();
 
 	// From n_i compute compute this posting list's IDF
-	idf = QueryTFIDFScorer::idf(lv->n_docs, global_term_info_it->second);
+	idf = QueryTFIDFScorer::idf(lv.n_docs, global_term_info_it->second);
 }
 
 Index::PostingList::iterator Index::PostingList::begin() const
@@ -208,6 +200,12 @@ score_t Index::PostingList::score(const Index::PostingList::iterator& it, const 
 {
 	doclen_t dl = scorer.needs_doc_metadata() ? index->document_index[it.current.first - index->base_docid].lenght : 0;
 	return scorer.score(it.current.second, idf, dl, index->avgdl);
+}
+
+void Index::PostingList::iterator::nextG(docid_t docid, const iterator& end)
+{
+	while(*this != end and current.first <= docid)
+		++*this;
 }
 
 } // namespace sindex
