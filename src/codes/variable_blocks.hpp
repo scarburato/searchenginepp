@@ -25,14 +25,17 @@ public:
 		uint64_t current_datum_decoded = 0;
 		EncondedDataIterator current_encoded_it;
 		EncondedDataIterator next_encoded_it;
+		EncondedDataIterator end_encoded_it;
 
-		explicit iterator(EncondedDataIterator p) : current_encoded_it(p) {}
+		explicit iterator(EncondedDataIterator p, EncondedDataIterator s):
+			current_encoded_it(p), end_encoded_it(s) {}
+
 		void parse_and_align()
 		{
 			current_datum_decoded = 0;
 
 			// Save the next input offset
-			auto next_input = this->current_encoded_it;
+			auto next_input = current_encoded_it;
 
 			unsigned i = 0;
 
@@ -52,7 +55,9 @@ public:
 		iterator& operator++()
 		{
 			current_encoded_it = next_encoded_it;
-			parse_and_align();
+			if(current_encoded_it != end_encoded_it)
+				parse_and_align();
+
 			return *this;
 		}
 		const EncondedDataIterator& get_raw_iterator() const {return current_encoded_it;}
@@ -68,14 +73,14 @@ public:
 
 	iterator begin() const
 	{
-		auto begin = iterator(encoded_begin);
+		auto begin = iterator(encoded_begin, encoded_end);
 		begin.parse_and_align();
 		return begin;
 	}
 
 	iterator end() const
 	{
-		return iterator(encoded_end);
+		return iterator(encoded_end, encoded_end);
 	}
 };
 
