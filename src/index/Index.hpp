@@ -85,7 +85,7 @@ public:
 	public:
 		class iterator
 		{
-			docid_decoder_t::DecodeIterator docid_curr;
+			docid_decoder_t::iterator docid_curr;
 			freq_decoder_t::DecodeIterator freq_curr;
 
 			std::pair<docid_t, freq_t> current;
@@ -107,7 +107,7 @@ public:
 			bool operator==(const iterator& b) const {return docid_curr == b.docid_curr;}
 			bool operator!=(const iterator& b) const {return !(*this == b);}
 
-			iterator(docid_decoder_t::DecodeIterator docid_curr, freq_decoder_t::DecodeIterator freq_curr):
+			iterator(docid_decoder_t::iterator docid_curr, freq_decoder_t::DecodeIterator freq_curr):
 				docid_curr(docid_curr), freq_curr(freq_curr)
 			{}
 

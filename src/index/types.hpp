@@ -127,10 +127,4 @@ struct SigmaLexiconValue : public LexiconValue
 	}
 };
 
-template<typename EncondedDataIterator>
-using IndexDecoder = codes::VariableBlocksDecoder<EncondedDataIterator, docid_t>;
-
-template<typename RawDataIterator>
-using IndexEncoder = codes::VariableBlocksEncoder<RawDataIterator>;
-
 }

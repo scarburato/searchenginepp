@@ -7,32 +7,27 @@
 namespace codes
 {
 
-template<typename EncondedDataIterator, typename T = uint64_t>
-class VariableBlocksDecoder : public CodeDecoder<EncondedDataIterator, T>
+template<typename EncondedDataIterator>
+class VariableBlocksDecoder
 {
+	EncondedDataIterator encoded_begin, encoded_end;
 public:
-	struct DecodeIterator: public CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>
+	class iterator
 	{
-		using DecodeIteratorBase = typename CodeDecoder<EncondedDataIterator, T>::template DecodeIteratorBase<DecodeIterator>::DecodeIteratorBase;
-		using DecodeIteratorBase::current_encoded_it;
-		using DecodeIteratorBase::end_it;
+	public:
+		using iterator_category = std::input_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = uint64_t;
+		using pointer = uint64_t*;
+		using reference = uint64_t&;
 
-		explicit DecodeIterator(EncondedDataIterator pos, EncondedDataIterator stop): DecodeIteratorBase(pos, stop) {}
+	private:
+		uint64_t current_datum_decoded = 0;
+		EncondedDataIterator current_encoded_it;
+		EncondedDataIterator next_encoded_it;
 
-		T operator*() const {return current_datum_decoded;}
-
-		void alignNext()
-		{
-			// Align iterator to the last byte of a number
-			while (current_encoded_it != end_it and *current_encoded_it & 0b10000000)
-				++current_encoded_it;
-
-			// Move to the begin of a new number, if any
-			if(current_encoded_it != end_it)
-				++current_encoded_it;
-		}
-
-		void parseCurrent()
+		explicit iterator(EncondedDataIterator p) : current_encoded_it(p) {}
+		void parse_and_align()
 		{
 			current_datum_decoded = 0;
 
@@ -41,30 +36,46 @@ public:
 
 			unsigned i = 0;
 
-			// Append the 7 useful bits to the number until I find the end byte or 
+			// Append the 7 useful bits to the number until I find the end byte or
 			// until I reach the end of the iterator
 			do
 				current_datum_decoded |= (uint64_t) (*next_input & ~0b10000000) << 7 * i++;
-			while (next_input != end_it and *next_input++ & 0b10000000);
+			while (*next_input++ & 0b10000000);
+
+			next_encoded_it = next_input;
 		}
 
-	private:
-		T current_datum_decoded;
+	public:
+		const uint64_t& operator*() const {return current_datum_decoded;}
+		const uint64_t* operator->() const {return &current_datum_decoded;}
+
+		iterator& operator++()
+		{
+			current_encoded_it = next_encoded_it;
+			parse_and_align();
+			return *this;
+		}
+		const EncondedDataIterator& get_raw_iterator() const {return current_encoded_it;}
+
+		bool operator==(const iterator& other) const {return this->current_encoded_it == other.current_encoded_it;}
+		bool operator!=(const iterator& other) const {return this->current_encoded_it != other.current_encoded_it;}
+
+		friend VariableBlocksDecoder;
 	};
 
 	VariableBlocksDecoder(EncondedDataIterator start, const EncondedDataIterator& end) :
-			CodeDecoder<EncondedDataIterator, T>(start, end) {}
+			encoded_begin(start), encoded_end(end) {}
 
-	DecodeIterator begin() const
+	iterator begin() const
 	{
-		auto begin = DecodeIterator(this->first_datum, this->data_right_boundary);
-		begin.parseCurrent();
+		auto begin = iterator(encoded_begin);
+		begin.parse_and_align();
 		return begin;
 	}
 
-	DecodeIterator end() const
+	iterator end() const
 	{
-		return DecodeIterator(this->data_right_boundary, this->data_right_boundary);
+		return iterator(encoded_end);
 	}
 };
 
