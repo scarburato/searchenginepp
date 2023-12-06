@@ -83,6 +83,8 @@ public:
 		freq_decoder_t freq_dec;
 
 	public:
+		struct offset {uint64_t docid_off; uint64_t freq_off;};
+
 		class iterator
 		{
 			docid_decoder_t::iterator docid_curr;
@@ -90,6 +92,9 @@ public:
 
 			std::pair<docid_t, freq_t> current;
 
+			iterator(docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
+					docid_curr(docid_curr), freq_curr(freq_curr)
+			{}
 		public:
 
 		 	const std::pair<docid_t, freq_t>& operator*() const {return current;}
@@ -104,16 +109,20 @@ public:
 				return *this;
 			}
 
+			iterator operator+(unsigned n) const
+			{
+				iterator tmp(*this);
+				for(unsigned i = 0; i < n; ++i)
+					++tmp;
+				return tmp;
+			}
+
 			bool operator==(const iterator& b) const {return docid_curr == b.docid_curr;}
 			bool operator!=(const iterator& b) const {return !(*this == b);}
 
-			iterator(docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
-				docid_curr(docid_curr), freq_curr(freq_curr)
-			{}
-
 			void nextG(docid_t, const iterator&);
 
-			friend class PostingList;
+			friend PostingList;
 		};
 
 
@@ -122,6 +131,9 @@ public:
 
 		iterator begin() const;
 		iterator end() const;
+
+		/** This stuff assumes that the freq decoder's begin is aligned (ie its offset is 0) */
+		offset get_offset(const iterator&);
 	};
 
 	PostingList get_posting_list(const std::string& term, const LexiconValue& lv) const {return PostingList(this, term, lv);}

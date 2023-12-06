@@ -184,9 +184,11 @@ void write_sigma_lexicon(const std::filesystem::path& dir) {
 		size_t i = 1;
 
 		auto pl = index_worker.index.get_posting_list(term, lv);
+		auto pl_it = pl.begin();
+		auto pl_curr_block_off = pl.get_offset(pl_it);
 
 		// For each posting we score it and update the sigma, if necessary
-		for(auto pl_it = pl.begin(); pl_it != pl.end(); ++pl_it, ++i)
+		for(; pl_it != pl.end(); ++pl_it, ++i)
 		{
 			const auto& [docid, freq] = *pl_it;
 
@@ -204,12 +206,13 @@ void write_sigma_lexicon(const std::filesystem::path& dir) {
 			if (i % SKIP_BLOCK_SIZE == 0)
 			{
 				current_skip.last_docid = docid;
-				current_skip.docid_offset = i; // @fixme this is wrong
-				current_skip.freq_offset = i; // @fixme this is wrong
+				current_skip.docid_offset = pl_curr_block_off.docid_off;
+				current_skip.freq_offset = pl_curr_block_off.freq_off;
 				slv.skip_pointers.push_back(current_skip);
+
 				current_skip = {};
+				pl_curr_block_off = pl.get_offset(pl_it + 1);
 			}
-			/** @todo calculate the right offset inside VariableBlocks and Unary iterators */
 		}
 
 		// Write the new value

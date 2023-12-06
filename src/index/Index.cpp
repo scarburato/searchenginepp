@@ -185,6 +185,16 @@ score_t Index::PostingList::score(const Index::PostingList::iterator& it, const 
 	return scorer.score(it.current.second, idf, dl, index->avgdl);
 }
 
+Index::PostingList::offset Index::PostingList::get_offset(const Index::PostingList::iterator& it)
+{
+	return {
+		.docid_off = static_cast<uint64_t>(it.docid_curr.get_raw_iterator() - docid_dec.begin().get_raw_iterator()),
+		.freq_off = codes::serialize_bit_offset(
+				it.freq_curr.get_raw_iterator() - freq_dec.begin().get_raw_iterator(),
+				it.freq_curr.get_bit_offset())
+	};
+}
+
 void Index::PostingList::iterator::nextG(docid_t docid, const iterator& end)
 {
 	while(*this != end and current.first <= docid)

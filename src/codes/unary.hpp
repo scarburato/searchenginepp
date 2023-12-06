@@ -10,7 +10,7 @@ namespace codes
  * @param bit_offset
  * @return
  */
-uint64_t serialize_bit_offset(size_t offset, unsigned bit_offset)
+inline uint64_t serialize_bit_offset(size_t offset, unsigned bit_offset)
 {
 	assert(bit_offset < 8);
 	return (offset << 3) | bit_offset;
@@ -22,7 +22,7 @@ uint64_t serialize_bit_offset(size_t offset, unsigned bit_offset)
  * @param bit_offset
  * @return
  */
-std::pair<size_t, unsigned> deserialize_bit_offset(uint64_t serialized)
+inline std::pair<size_t, unsigned> deserialize_bit_offset(uint64_t serialized)
 {
 	return {serialized >> 3, serialized & 0b111};
 }
