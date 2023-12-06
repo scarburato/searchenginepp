@@ -1,7 +1,5 @@
 #pragma once
 
-#include "codes.hpp"
-
 namespace codes
 {
 
@@ -99,52 +97,39 @@ public:
 };
 
 template<typename RawDataIterator>
-class UnaryEncoder: public CodeEncoder<RawDataIterator>
+class UnaryEncoder
 {
-public:
-	UnaryEncoder(RawDataIterator start, RawDataIterator end):
-			CodeEncoder<RawDataIterator>(start, end) {}
+	RawDataIterator raw_begin;
+	RawDataIterator raw_end;
 
-	struct EncodeIterator: public CodeEncoder<RawDataIterator>::EncodeIterator
+public:
+	static_assert(std::is_integral_v<typename std::iterator_traits<RawDataIterator>::value_type>);
+
+	UnaryEncoder(RawDataIterator begin, RawDataIterator end):
+			raw_begin(begin), raw_end(end) {}
+
+	class iterator
 	{
-		explicit EncodeIterator(RawDataIterator current_it, const UnaryEncoder& encoder, bool eos = false):
-			encoder(encoder), current_it(current_it), eos(eos)
+	public:
+		using iterator_category = std::input_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = uint8_t;
+		using pointer = uint8_t*;
+		using reference = uint8_t&;
+
+	private:
+		RawDataIterator current_raw_it;
+		RawDataIterator end_raw_it;
+		uint64_t buffer = 0;
+		uint8_t out_buffer = 0;
+		bool eos = false;
+
+		explicit iterator(RawDataIterator current_it, RawDataIterator end_raw_it, bool eos = false):
+				current_raw_it(current_it), end_raw_it(end_raw_it), eos(eos)
 		{
 			if (not eos)
 				build_out_buffer();
 		}
-
-		uint8_t operator*()
-		{
-			return out_buffer;
-		}
-
-		EncodeIterator& operator++()
-		{
-			if(current_it == encoder.stop)
-				eos = true;
-
-			build_out_buffer();
-			return *this;
-		}
-
-		friend bool operator== (const EncodeIterator& a, const EncodeIterator& b)
-		{
-			// This generates simpler asm
-			return a.eos == b.eos;
-
-			// if we're at the last element, check if we've streamed the last byte before. Otherwise, we'd lose a byte
-			//return a.current_it == b.current_it and (a.current_it != a.encoder.stop or a.eos or b.eos);
-		};
-
-		friend bool operator!= (const EncodeIterator& a, const EncodeIterator& b) { return not operator==(a,b); };
-
-	private:
-		const UnaryEncoder& encoder;
-		RawDataIterator current_it;
-		uint64_t buffer = 0;
-		uint8_t out_buffer = 0;
-		bool eos = false;
 
 		void build_out_buffer()
 		{
@@ -153,11 +138,11 @@ public:
 			{
 				if (!buffer)
 				{
-					if (current_it == encoder.stop)
+					if (current_raw_it == end_raw_it)
 						break;
 
-					buffer =  *current_it;
-					++ current_it;
+					buffer =  *current_raw_it;
+					++ current_raw_it;
 				}
 
 				out_buffer |= bit_mask & (buffer > 1 ? 0xff : 0);
@@ -165,10 +150,38 @@ public:
 				buffer -= 1;
 			}
 		}
+
+	public:
+
+		const uint8_t& operator*() const { return out_buffer; }
+		const uint8_t* operator->() const { return &out_buffer; }
+
+		iterator& operator++()
+		{
+			if(current_raw_it == end_raw_it)
+				eos = true;
+
+			build_out_buffer();
+			return *this;
+		}
+
+		friend bool operator== (const iterator& a, const iterator& b)
+		{
+			// This generates simpler asm
+			//return a.eos == b.eos;
+			if(a.eos == b.eos)
+				return true;
+
+			// if we're at the last element, check if we've streamed the last byte before. Otherwise, we'd lose a byte
+			return a.current_raw_it == b.current_raw_it and (a.current_raw_it != a.end_raw_it or a.eos or b.eos);
+		};
+
+		friend bool operator!= (const iterator& a, const iterator& b) { return not operator==(a,b); };
+		friend UnaryEncoder;
 	};
 
-	EncodeIterator begin() const {return EncodeIterator(this->start, *this);}
-	EncodeIterator end() const {return EncodeIterator(this->stop, *this, true);}
+	iterator begin() const {return iterator(raw_begin, raw_end);}
+	iterator end() const {return iterator(raw_begin, raw_end, true);}
 
 };
 

@@ -37,7 +37,6 @@ find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
 find_library(HYPERSCAN_LIB hs REQUIRED)
 
 add_library(libprogetto
-        src/codes/codes.hpp
         src/codes/variable_blocks.hpp
         src/normalizer/WordNormalizer.cpp
         src/normalizer/WordNormalizer.hpp
