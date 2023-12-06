@@ -56,7 +56,7 @@ const std::string& WordNormalizer::TokenStream::next()
 
 #ifdef SEARCHENGINECPP_STEMMER_ENABLE
 		// Skip stop words
-		if (token.empty() or stop_words.contains(token))
+		if (token.empty() or token.size() > 240 or stop_words.contains(token))
 			continue;
 
 		// Library stemmer
