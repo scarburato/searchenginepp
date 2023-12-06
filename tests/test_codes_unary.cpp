@@ -7,19 +7,30 @@ TEST(UnaryCode, decode)
 	const std::vector<unsigned> test0_parsed{
 		3, 1, 1, 1, 1, 1, 1, 4, 3, 2, 1, 1, 2, 1, 3,  2, 4
 	};
-	std::vector<unsigned> result;
 
 	codes::UnaryDecoder decoder(test0_data.begin(), test0_data.end());
+	std::vector<unsigned> result(decoder.begin(), decoder.end());
 
-	for (auto decoded : decoder)
-		result.push_back(decoded);
-
+	ASSERT_EQ(decoder.begin().get_bit_offset(), 0);
 	ASSERT_EQ(result.size(), test0_parsed.size());
 
 	auto res_it = result.begin();
 	auto test_it = test0_parsed.begin();
 
 	for(; res_it != result.end(); ++res_it, ++test_it)
+		ASSERT_EQ(*res_it, *test_it) << " at index " << (test_it - test0_parsed.begin());
+
+	// Test offseted data
+	codes::UnaryDecoder decoder_offseted(test0_data.begin(), test0_data.end(), 3);
+	std::vector<unsigned> result_offseted(decoder_offseted.begin(), decoder_offseted.end());
+
+	ASSERT_EQ(decoder_offseted.begin().get_bit_offset(), 3);
+	ASSERT_EQ(result_offseted.size(), test0_parsed.size() - 1);
+
+	res_it = result_offseted.begin();
+	test_it = test0_parsed.begin() + 1;
+
+	for(; res_it != result_offseted.end(); ++res_it, ++test_it)
 		ASSERT_EQ(*res_it, *test_it) << " at index " << (test_it - test0_parsed.begin());
 }
 

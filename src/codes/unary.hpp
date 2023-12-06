@@ -1,13 +1,38 @@
 #pragma once
+#include <bit>
 
 namespace codes
 {
+
+/**
+ * Serialize an offset and a bit offset in a single uint64_t
+ * @param offset
+ * @param bit_offset
+ * @return
+ */
+uint64_t serialize_bit_offset(size_t offset, unsigned bit_offset)
+{
+	assert(bit_offset < 8);
+	return (offset << 3) | bit_offset;
+}
+
+/**
+ * Deserialize an offset and a bit offset from a single uint64_t
+ * @param offset
+ * @param bit_offset
+ * @return
+ */
+std::pair<size_t, unsigned> deserialize_bit_offset(uint64_t serialized)
+{
+	return {serialized >> 3, serialized & 0b111};
+}
 
 template<typename EncondedDataIterator>
 class UnaryDecoder
 {
 	EncondedDataIterator begin_it;
 	EncondedDataIterator end_it;
+	unsigned start_off = 0;
 public:
 	/**
 	 * 0 will be decoded to 1, as a side effect, padding bits in the last byte will be decoded as 1s!
@@ -15,9 +40,11 @@ public:
 	 * @param start Where to start reading
 	 * @param end where to stop
 	 */
-	explicit UnaryDecoder(EncondedDataIterator start, const EncondedDataIterator &end) :
-			begin_it(start), end_it(end) {}
-
+	explicit UnaryDecoder(EncondedDataIterator start, const EncondedDataIterator &end, unsigned start_off = 0) :
+			begin_it(start), end_it(end), start_off(start_off)
+	{
+		assert(start_off < 8);
+	}
 
 	class iterator
 	{
@@ -32,9 +59,11 @@ public:
 		EncondedDataIterator end_encoded_it;
 		uint64_t current_datum_decoded = 0;
 		uint8_t bit_mask = 0b00000001;
+		uint8_t current_datum_start_bit_mask = 0b00000001;
 
 		explicit iterator(EncondedDataIterator pos, EncondedDataIterator end, unsigned bit_off = 0):
-			current_encoded_it(pos), end_encoded_it(end), bit_mask(0b00000001u << bit_off) {}
+			current_encoded_it(pos), end_encoded_it(end), bit_mask(0b00000001u << bit_off),
+			current_datum_start_bit_mask(0b00000001u << bit_off) {}
 
 		/**
 		* Move the current selected bit in the current byte by one. If the end of the byte is reached, move
@@ -54,6 +83,7 @@ public:
 
 		void parse_current()
 		{
+			current_datum_start_bit_mask = bit_mask;
 			current_datum_decoded = 1;
 			for(;*current_encoded_it & bit_mask; next_bit())
 				current_datum_decoded += 1;
@@ -72,6 +102,9 @@ public:
 			return *this;
 		}
 
+		const EncondedDataIterator& get_raw_iterator() const {return current_encoded_it;}
+		unsigned get_bit_offset() const {return std::countr_zero(current_datum_start_bit_mask);}
+
 		bool operator==(const iterator& b) const
 		{
 			return bit_mask == b.bit_mask and current_encoded_it == b.current_encoded_it;
@@ -85,7 +118,7 @@ public:
 
 	iterator begin() const
 	{
-		auto begin = iterator(begin_it, end_it);
+		auto begin = iterator(begin_it, end_it, start_off);
 		begin.parse_current();
 		return begin;
 	}
