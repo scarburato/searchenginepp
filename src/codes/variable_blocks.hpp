@@ -80,16 +80,33 @@ public:
 };
 
 template<typename RawDataIterator>
-class VariableBlocksEncoder: public CodeEncoder<RawDataIterator>
+class VariableBlocksEncoder
 {
+	RawDataIterator raw_begin;
+	RawDataIterator raw_end;
+
 public:
-	VariableBlocksEncoder(RawDataIterator start, RawDataIterator end):
-			CodeEncoder<RawDataIterator>(start, end) {}
+	static_assert(std::is_integral_v<typename std::iterator_traits<RawDataIterator>::value_type>);
 
-	struct EncodeIterator: public CodeEncoder<RawDataIterator>::EncodeIterator
+	VariableBlocksEncoder(RawDataIterator begin, RawDataIterator end):
+			raw_begin(begin), raw_end(end) {}
+
+	class iterator
 	{
-		explicit EncodeIterator(RawDataIterator current_it): current_it(current_it) {}
+	public:
+		using iterator_category = std::input_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = uint8_t;
+		using pointer = uint8_t*;
+		using reference = uint8_t&;
 
+	private:
+		RawDataIterator current_it;
+		bool working = false;
+		typename RawDataIterator::value_type buffer;
+
+		explicit iterator(RawDataIterator current_it): current_it(current_it) {}
+	public:
 		uint8_t operator*()
 		{
 			if(not working)
@@ -100,7 +117,7 @@ public:
 			return (buffer > 0b01111111ul ? 0b10000000 : 0) | (buffer & 0b01111111);
 		}
 
-		EncodeIterator& operator++()
+		iterator& operator++()
 		{
 			buffer = buffer >> 7;
 
@@ -118,17 +135,13 @@ public:
 			return *this;
 		}
 
-		friend bool operator== (const EncodeIterator& a, const EncodeIterator& b) { return a.current_it == b.current_it; };
-		friend bool operator!= (const EncodeIterator& a, const EncodeIterator& b) { return a.current_it != b.current_it; };
-
-	private:
-		RawDataIterator current_it;
-		bool working = false;
-		typename RawDataIterator::value_type buffer;
+		friend bool operator== (const iterator& a, const iterator& b) { return a.current_it == b.current_it; };
+		friend bool operator!= (const iterator& a, const iterator& b) { return a.current_it != b.current_it; };
+		friend class VariableBlocksEncoder;
 	};
 
-	EncodeIterator begin() const {return EncodeIterator(this->start);}
-	EncodeIterator end() const {return EncodeIterator(this->stop);}
+	iterator begin() const {return iterator(raw_begin);}
+	iterator end() const {return iterator(raw_end);}
 
 };
 
