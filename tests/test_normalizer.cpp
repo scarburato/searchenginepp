@@ -63,3 +63,21 @@ TEST(MSMarcoFixer, test2)
 
 	ASSERT_EQ(str, expected);
 }
+
+TEST(UTF8_LATIN1_CASE, lower_case_latin1)
+{
+	std::string to_convert =           "ÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÀÇÙÆ";
+	const std::string lower_case_str = "èéêëìíîïðñòóôõöøùúûüýàçùæ";
+
+	normalizer::str_to_lwr_uft8_latin1(to_convert);
+	ASSERT_EQ(to_convert, lower_case_str);
+}
+
+TEST(UTF8_LATIN1_CASE, lower_case_ascii_regression)
+{
+	std::string to_convert =           "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+	const std::string lower_case_str = "abcdefghijklmnopqrstuvwxyz1234567890";
+
+	normalizer::str_to_lwr_uft8_latin1(to_convert);
+	ASSERT_EQ(to_convert, lower_case_str);
+}
