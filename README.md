@@ -29,7 +29,7 @@ Navigate to the project directory and use the following commands:
 ```bash
 mkdir build
 cd build/
-cmake -DCMAKE_BUILD_TYPE=Release -DFIX_MSMARCO_LATIN1=ON ..
+cmake -DCMAKE_BUILD_TYPE=Release -DUSE_STEMMER:BOOL=ON -DFIX_MSMARCO_LATIN1:BOOL=ON -DTEXT_FULL_LATIN1_CASE:BOOL=ON ..
 make -j8
 ```
 
@@ -37,10 +37,12 @@ you should replace the `-j8` flag with the number of cores in your CPU
 
 ### CMake options
 
-There are two CMAKE options:
+Those are the building options:
 
 - `USE_STEMMER` used to enable or disable Snowball's stemmer and stopword removal
 - `FIX_MSMARCO_LATIN1` used to enable or disable heuristic and encoding fix for certain wronly encoded docs in MSMARCO. If you are not using MSMARCO you should put this flag to OFF (default option is OFF)
+- `TEXT_FULL_LATIN1_CASE` replaces the ASCII-only lower-case algorithm with a latin1 (a larger subset of utf8) lower-case
+- `USE_FAST_LOG` replaces the floating point version of log with a faster integer version. It doesn't improve performance by much
 
 ### Run tests
 

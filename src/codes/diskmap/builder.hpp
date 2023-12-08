@@ -25,6 +25,7 @@ private:
     std::vector<std::string> heads;
     size_t current_bytes = 0;
 	uint64_t n_strings = 0;
+	[[maybe_unused]] std::string debug_last_string;
 
     static constexpr size_t N = [] {
 		if constexpr (std::is_integral_v<Value>)
@@ -80,7 +81,10 @@ public:
 
     void add(const std::string& key, const Value& value)
     {
-        // Create compressed_values as an array or vector based on the value of N
+		assert(not key.empty() and key > debug_last_string and key.size() < 255);
+		debug_last_string = key;
+
+		// Create compressed_values as an array or vector based on the value of N
         std::conditional_t<(N == 0), std::vector<codes::VariableBytes>, std::array<codes::VariableBytes, N>> compressed_values;
         if constexpr (N != 0)
         {

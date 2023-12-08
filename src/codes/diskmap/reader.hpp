@@ -113,15 +113,16 @@ public:
 			if(offset % B != 0)
 			{
 				// First element of non-block start: the common prefix's length
-				auto t = codes::VariableBytes::parse(parent.cblocks_base + offset);
-				size_t prefix_len = t.first;
-				offset += t.second;
+				size_t prefix_len = *(parent.cblocks_base + offset++);
 
 				// then we can compute the complete key string
 				auto postfix = std::string((char *)parent.cblocks_base + offset);
-				current.first =
+				auto new_str =
 						std::string(parent.index_string[current_block].first).substr(0, prefix_len)
 						+ postfix;
+
+				assert(new_str > current.first and new_str.size() < 255 and not current.first.empty());
+				current.first = std::move(new_str);
 
 				offset += postfix.size() + 1;
 

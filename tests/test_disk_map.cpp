@@ -51,7 +51,7 @@ public:
 	}
 };
 
-constexpr size_t test_page_size = 0x100;
+constexpr size_t test_page_size = 0x200;
 constexpr size_t test_cardinality = 100'520;
 
 struct DiskTest: public testing::Test
@@ -74,6 +74,11 @@ struct DiskTest: public testing::Test
 		// Search test
 		for (const auto& t : test_search)
 			test_data.insert(t);
+
+		// Some very long random strings
+		const std::string base_giga_str = std::string("!!") + std::string(230, 'a');
+		for(char c = 'a'; c <= 'z'; ++c)
+			test_data[base_giga_str + std::string(5, c)] = g.random_data();
 
 		auto it = test_data.find("autocisterna");
 		if(it != test_data.end())
