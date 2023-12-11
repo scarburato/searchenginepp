@@ -92,13 +92,13 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		score_t score = 0;
 
 		// Score current document
-		for(auto& iterator : posting_lists_its)
+		for(auto& posting_helper : posting_lists_its)
 		{
-			const auto& [docid, freq] = *iterator.it;
+			const auto& [docid, freq] = *posting_helper.it;
 			if(docid != curr_docid)
 				continue;
 
-			score += iterator.pl.score(iterator.it, scorer);
+			score += posting_helper.pl.score(posting_helper.it, scorer);
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results
@@ -113,21 +113,21 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 
 		docid_t next_docid = DOCID_MAX;
 		// Move iterators to current docid or (the next closest one)
-		for(auto iterator_it = posting_lists_its.begin(); iterator_it != posting_lists_its.end(); )
+		for(auto posting_helper_it = posting_lists_its.begin(); posting_helper_it != posting_lists_its.end(); )
 		{
-			iterator_it->it.nextG(curr_docid, iterator_it->pl.end());
+			posting_helper_it->it.nextG(curr_docid, posting_helper_it->pl.end());
 
 			// We exhausted this posting list, let's remove it
-			if(iterator_it->it == iterator_it->pl.end())
+			if(posting_helper_it->it == posting_helper_it->pl.end())
 			{
-				iterator_it = posting_lists_its.erase(iterator_it);
+				posting_helper_it = posting_lists_its.erase(posting_helper_it);
 				continue;
 			}
 
-			next_docid = std::min(next_docid, iterator_it->it->first);
+			next_docid = std::min(next_docid, posting_helper_it->it->first);
 
 			// Continue
-			++iterator_it;
+			++posting_helper_it;
 		}
 		curr_docid = next_docid;
 	}
