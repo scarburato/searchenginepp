@@ -174,11 +174,11 @@ std::pair<size_t, std::string> write_sigma_lexicon(const std::filesystem::path& 
 	// Load all db stuff
 	memory_mmap metadata_mem(dir/".."/"metadata");
 	memory_mmap global_lexicon_mem(dir/".."/"global_lexicon");
-	sindex::Index::global_lexicon_t global_lexicon(global_lexicon_mem);
+	sindex::Index<sindex::LexiconValue>::global_lexicon_t global_lexicon(global_lexicon_mem);
 	sindex::QueryTFIDFScorer tfidf_scorer;
 	sindex::QueryBM25Scorer bm25_scorer;
 
-	index_worker_t index_worker(dir, metadata_mem, global_lexicon, tfidf_scorer);
+	index_worker_t<sindex::LexiconValue> index_worker(dir, metadata_mem, global_lexicon, tfidf_scorer);
 
 	std::ofstream sigma_lexicon(dir/"lexicon", std::ios::binary);
 

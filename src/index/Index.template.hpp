@@ -1,3 +1,5 @@
+#pragma once
+
 #include <set>
 #include <list>
 #include <queue>
@@ -10,9 +12,10 @@
 namespace sindex
 {
 
-Index::Index(Index::local_lexicon_t lx, Index::global_lexicon_t &gx, const memory_area &iid,
+template<class LVT>
+Index<LVT>::Index(local_lexicon_t lx, global_lexicon_t &gx, const memory_area &iid,
 			 const memory_area &iif, const memory_area &di, const memory_area& metadata, QueryScorer& qs):
-			 local_lexicon(std::move(lx)), global_lexicon(gx), scorer(qs)
+	local_lexicon(std::move(lx)), global_lexicon(gx), scorer(qs)
 {
 	auto t = iid.get();
 	inverted_indices = t.first;
@@ -33,12 +36,14 @@ Index::Index(Index::local_lexicon_t lx, Index::global_lexicon_t &gx, const memor
 	avgdl = (double)(*(doclen_t*)t.first) / n_docs;
 }
 
-Index::~Index()
+template<class LVT>
+Index<LVT>::~Index()
 {
 
 }
 
-std::vector<result_t> Index::query(std::set<std::string> &query, bool conj, size_t top_k)
+template<class LVT>
+std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj, size_t top_k)
 {
 	struct pending_result_t {
 		docid_t docid;
@@ -51,7 +56,7 @@ std::vector<result_t> Index::query(std::set<std::string> &query, bool conj, size
 	// be popped
 	std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>> results;
 
-	struct PostingListHelper {PostingList pl; PostingList::iterator it;};
+	struct PostingListHelper {PostingList pl; typename PostingList::iterator it;};
 	std::list<PostingListHelper> posting_lists_its; //@fixme make it work with std::vector
 	// size_t n_docs_to_process = 0; // Never used
 	docid_t docid_base = -1;
@@ -163,7 +168,8 @@ std::vector<result_t> Index::query(std::set<std::string> &query, bool conj, size
 	return final_results;
 }
 
-Index::PostingList::PostingList(Index const *index, const std::string& term, const LexiconValue& lv):
+template<class LVT>
+Index<LVT>::PostingList::PostingList(Index const *index, const std::string& term, const LexiconValue& lv):
 	index(index), lv(lv),
 	docid_dec(index->inverted_indices + lv.start_pos_docid, index->inverted_indices + lv.end_pos_docid),
 	freq_dec(index->inverted_indices_freqs + lv.start_pos_freq, index->inverted_indices_freqs + lv.end_pos_freq)
@@ -177,25 +183,29 @@ Index::PostingList::PostingList(Index const *index, const std::string& term, con
 	idf = QueryTFIDFScorer::idf(index->n_docs, global_term_info_it->second);
 }
 
-Index::PostingList::iterator Index::PostingList::begin() const
+template<class LVT>
+typename Index<LVT>::PostingList::iterator Index<LVT>::PostingList::begin() const
 {
 	auto it = iterator(docid_dec.begin(), freq_dec.begin());
 	it.current = std::make_pair(*it.docid_curr, *it.freq_curr);
 	return it;
 }
 
-Index::PostingList::iterator Index::PostingList::end() const
+template<class LVT>
+typename Index<LVT>::PostingList::iterator Index<LVT>::PostingList::end() const
 {
 	return {docid_dec.end(), freq_dec.end()};
 }
 
-score_t Index::PostingList::score(const Index::PostingList::iterator& it, const QueryScorer& scorer) const
+template<class LVT>
+score_t Index<LVT>::PostingList::score(const Index::PostingList::iterator& it, const QueryScorer& scorer) const
 {
 	doclen_t dl = scorer.needs_doc_metadata() ? index->document_index[it.current.first - index->base_docid].lenght : 0;
 	return scorer.score(it.current.second, idf, dl, index->avgdl);
 }
 
-Index::PostingList::offset Index::PostingList::get_offset(const Index::PostingList::iterator& it)
+template<class LVT>
+typename Index<LVT>::PostingList::offset Index<LVT>::PostingList::get_offset(const Index::PostingList::iterator& it)
 {
 	return {
 		.docid_off = static_cast<uint64_t>(it.docid_curr.get_raw_iterator() - docid_dec.begin().get_raw_iterator()),
@@ -205,7 +215,8 @@ Index::PostingList::offset Index::PostingList::get_offset(const Index::PostingLi
 	};
 }
 
-void Index::PostingList::iterator::nextG(docid_t docid, const iterator& end)
+template<class LVT>
+void Index<LVT>::PostingList::iterator::nextG(docid_t docid, const iterator& end)
 {
 	while(*this != end and current.first <= docid)
 		++*this;

@@ -11,19 +11,20 @@
 #include "util/memory.hpp"
 #include "util/thread_pool.hpp"
 
+template<class LVT>
 struct index_worker_t
 {
 	memory_mmap local_lexicon_mem;
-	sindex::Index::local_lexicon_t local_lexicon;
+	typename sindex::Index<LVT>::local_lexicon_t local_lexicon;
 
 	memory_mmap iid_mem;
 	memory_mmap iif_mem;
 	memory_mmap di_mem;
 
-	sindex::Index index;
+	sindex::Index<LVT> index;
 
-	index_worker_t(const std::filesystem::path& db, memory_area& metadata, sindex::Index::global_lexicon_t& global_lexicon, sindex::QueryScorer& scorer):
-			local_lexicon_mem(db/"lexicon_temp"),
+	index_worker_t(const std::filesystem::path& db, memory_area& metadata, typename sindex::Index<LVT>::global_lexicon_t& global_lexicon, sindex::QueryScorer& scorer, const std::string& lexicon_name = "lexicon_temp"):
+			local_lexicon_mem(db/lexicon_name),
 			local_lexicon(local_lexicon_mem),
 			iid_mem(db/"posting_lists_docids"),
 			iif_mem(db/"posting_lists_freqs"),

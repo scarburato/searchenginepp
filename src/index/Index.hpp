@@ -26,9 +26,10 @@ struct DocumentInfo
  * This class represents the index and is used to access the documents'
  * information regarding the terms they contain and their frequencies.
  */
+template<class LVT = LexiconValue>
 class Index{
 public:
-	using local_lexicon_t = codes::disk_map<LexiconValue>;
+	using local_lexicon_t = codes::disk_map<LVT>;
 	using global_lexicon_t = codes::disk_map<freq_t>;
 
 private:
@@ -141,3 +142,5 @@ public:
 };
 
 }
+
+#include "Index.template.hpp"

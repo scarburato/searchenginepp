@@ -25,9 +25,9 @@ int main(int argc, char** argv)
 	// Load all db stuff
 	memory_mmap metadata_mem(in_dir/"metadata");
 	memory_mmap global_lexicon_mem(in_dir/"global_lexicon");
-	sindex::Index::global_lexicon_t global_lexicon(global_lexicon_mem);
+	sindex::Index<sindex::SigmaLexiconValue>::global_lexicon_t global_lexicon(global_lexicon_mem);
 
-	std::vector<index_worker_t> indices;
+	std::vector<index_worker_t<sindex::SigmaLexiconValue>> indices;
 	indices.reserve(100); // @TODO @FIXME SOLVE THIS REFERENCE MADNESS
 
 	// VROOOOOM STANDARD IO
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 			continue;
 
 		std::clog << dir_entry.path() << std::endl;
-		indices.emplace_back(dir_entry, metadata_mem, global_lexicon, bm25_scorer);
+		indices.emplace_back(dir_entry, metadata_mem, global_lexicon, bm25_scorer, "lexicon");
 	}
 
 	std::string query;
