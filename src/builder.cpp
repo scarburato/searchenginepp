@@ -158,12 +158,19 @@ void write_metadata(const std::filesystem::path& out_dir, const size_t ndocs) {
 	metadata.write((char*)&ndocs, sizeof(size_t));
 }
 
+std::atomic<size_t> sum_skip_list_len = 0;
+std::atomic<size_t> n_skip_lists = 0;
+
 /**
  * This function computes the sigma for each term in the local lexicon and writes it to disk
- * It [will] also computes the skipping list. @todo 
+ * It also computes the skipping list.
  * @param dir the directory where the index is stored
+ * @return the maximum length of the skipping list
  */
-void write_sigma_lexicon(const std::filesystem::path& dir) {
+std::pair<size_t, std::string> write_sigma_lexicon(const std::filesystem::path& dir) {
+	// Statistical stuff
+	std::pair<size_t, std::string> max_skip_list_len = {};
+
 	// Load all db stuff
 	memory_mmap metadata_mem(dir/".."/"metadata");
 	memory_mmap global_lexicon_mem(dir/".."/"global_lexicon");
@@ -187,6 +194,16 @@ void write_sigma_lexicon(const std::filesystem::path& dir) {
 		auto pl_it = pl.begin();
 		auto pl_curr_block_off = pl.get_offset(pl_it);
 
+		auto build_skip = [&](const auto& docid) {
+			current_skip.last_docid = docid;
+			current_skip.docid_offset = pl_curr_block_off.docid_off;
+			current_skip.freq_offset = pl_curr_block_off.freq_off;
+			slv.skip_pointers.push_back(current_skip);
+
+			current_skip = {};
+			pl_curr_block_off = pl.get_offset(pl_it + 1);
+		};
+
 		// For each posting we score it and update the sigma, if necessary
 		for(; pl_it != pl.end(); ++pl_it, ++i)
 		{
@@ -204,21 +221,24 @@ void write_sigma_lexicon(const std::filesystem::path& dir) {
 			
 			// If we reached the end of the block
 			if (i % SKIP_BLOCK_SIZE == 0)
-			{
-				current_skip.last_docid = docid;
-				current_skip.docid_offset = pl_curr_block_off.docid_off;
-				current_skip.freq_offset = pl_curr_block_off.freq_off;
-				slv.skip_pointers.push_back(current_skip);
-
-				current_skip = {};
-				pl_curr_block_off = pl.get_offset(pl_it + 1);
-			}
+				build_skip(docid);
 		}
+
+		// If we have a partial block
+		if (i % SKIP_BLOCK_SIZE != 0)
+			build_skip(pl_it->first);
 
 		// Write the new value
 		sigma_lexicon_writer.add(term, slv);
+
+		// Update statistics
+		max_skip_list_len = std::max(max_skip_list_len, {slv.skip_pointers.size(), term});
+		sum_skip_list_len += slv.skip_pointers.size();
+		n_skip_lists += 1;
 	}
 	sigma_lexicon_writer.finalize();
+
+	return max_skip_list_len;
 }
 
 int main(int argc, char** argv)
@@ -309,15 +329,17 @@ int main(int argc, char** argv)
 	{
 		pool.wait_for_free_worker();
 		pool.add_job([path]() {
-			write_sigma_lexicon(path);
+			auto s = write_sigma_lexicon(path);
 			std::cout << "(thread " << std::hex << std::this_thread::get_id() << std::dec << " )\t"
-					  << "Built skipping list and sigmas for " << path << std::endl;
+					  << "Built skipping list and sigmas for " << path
+					  << " (max len = " << s.first << ") " << std::endl;//" for term " << s.second << ")" << std::endl;
 		});
 	}
 	pool.wait_all_jobs();
 
 	const auto stop_time = std::chrono::steady_clock::now();
-	std::cout << "Re-built local lexica in " << (stop_time - stop_time_2) / 1.0s << "s" << std::endl;
+	std::cout << "Re-built local lexica in " << (stop_time - stop_time_2) / 1.0s << "s"
+				<< "\taverage len = " << (double)sum_skip_list_len / (double)n_skip_lists << std::endl;
 
 	std::cout << "Processed " << (line_count - 1) << " documents in " << (stop_time - start_time) / 1.0s << "s"
 		<< " " << (chunk_n) << " indices generated\n";
