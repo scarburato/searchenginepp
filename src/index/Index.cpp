@@ -38,7 +38,7 @@ Index::~Index()
 
 }
 
-std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
+std::vector<result_t> Index::query(std::set<std::string> &query, bool conj, size_t top_k)
 {
 	struct pending_result_t {
 		docid_t docid;
@@ -64,6 +64,10 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 		// Element not in lexicon, we'll not consider it
 		if(posting_info_it == local_lexicon.end())
 		{
+			// If conjunctive mode, we can stop here
+			if(conj)
+				return {};
+
 			q_term_it = query.erase(q_term_it);
 			continue;
 		}
@@ -91,24 +95,30 @@ std::vector<result_t> Index::query(std::set<std::string> &query, size_t top_k)
 	{
 		score_t score = 0;
 
+		bool contains_all_terms = std::all_of(posting_lists_its.begin(), posting_lists_its.end(),
+				[&curr_docid](const PostingListHelper& pl) {return pl.it->first == curr_docid;});
+
 		// Score current document
-		for(auto& posting_helper : posting_lists_its)
+		if(not conj or contains_all_terms)
 		{
-			const auto& [docid, freq] = *posting_helper.it;
-			if(docid != curr_docid)
-				continue;
+			for(auto& posting_helper : posting_lists_its)
+			{
+				const auto& [docid, freq] = *posting_helper.it;
+				if(docid != curr_docid)
+					continue;
 
-			score += posting_helper.pl.score(posting_helper.it, scorer);
-		}
+				score += posting_helper.pl.score(posting_helper.it, scorer);
+			}
 
-		// Push computed result in the results, only if our score is greater than worst scoring doc in results
-		if(results.empty() or score > results.top().score)
-		{
-			results.emplace(curr_docid, score);
+			// Push computed result in the results, only if our score is greater than worst scoring doc in results
+			if(results.empty() or score > results.top().score)
+			{
+				results.emplace(curr_docid, score);
 
-			// If necessary pop-out the worst scoring element
-			if (results.size() > top_k)
-				results.pop();
+				// If necessary pop-out the worst scoring element
+				if (results.size() > top_k)
+					results.pop();
+			}
 		}
 
 		docid_t next_docid = DOCID_MAX;
