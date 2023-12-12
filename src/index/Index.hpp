@@ -70,6 +70,7 @@ public:
 
 	void set_scorer(QueryScorer& qs) {scorer = qs;}
 	std::vector<result_t> query(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10);
+	std::vector<result_t> query_bmm(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10);
 
 	class PostingList
 	{
@@ -77,7 +78,7 @@ public:
 		using freq_decoder_t = codes::UnaryDecoder<const uint8_t*>;
 		
 		Index const *index;
-		LexiconValue lv;
+		SigmaLexiconValue lv;
 		double idf;
 
 		docid_decoder_t docid_dec;
@@ -122,12 +123,13 @@ public:
 			bool operator!=(const iterator& b) const {return !(*this == b);}
 
 			void nextG(docid_t, const iterator&);
+			void nextGEQ(docid_t, const iterator&);
 
 			friend PostingList;
 		};
 
 
-		PostingList(Index const *index, const std::string& term, const LexiconValue& lv);
+		PostingList(Index const *index, const std::string& term, const LVT& lv);
 		score_t score(const PostingList::iterator& it, const QueryScorer& scorer) const;
 
 		iterator begin() const;
@@ -135,6 +137,7 @@ public:
 
 		/** This stuff assumes that the freq decoder's begin is aligned (ie its offset is 0) */
 		offset get_offset(const iterator&);
+		const SigmaLexiconValue& get_lexicon_value() const {return lv;}
 	};
 
 	PostingList get_posting_list(const std::string& term, const LexiconValue& lv) const {return PostingList(this, term, lv);}
