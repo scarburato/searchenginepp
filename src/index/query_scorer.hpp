@@ -26,7 +26,7 @@ class QueryBM25Scorer: public QueryScorer
 	double b;
 
 public:
-	explicit QueryBM25Scorer(double k1 = 1, double b = 1);
+	explicit QueryBM25Scorer(double k1 = 0.82, double b = 0.68);
 	score_t score(freq_t tf_term_doc, score_t idf, doclen_t dl, double avgdl) const override;
 	bool needs_doc_metadata() const override {return true;}
 };
