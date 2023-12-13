@@ -45,6 +45,7 @@ add_library(libprogetto
         src/index/types.hpp
         src/index/Index.hpp
         src/index/Index.template.hpp
+        src/index/Index.cpp
         src/indexBuilder/IndexBuilder.hpp
         src/indexBuilder/IndexBuilder.cpp
         src/codes/unary.hpp
