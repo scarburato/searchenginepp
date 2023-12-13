@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 		for(auto& index : indices)
 		{
 			tp.add_job([&, pos = i++] {
-				results[pos] = index.index.query(tokens);
+				results[pos] = index.index.query_bmm(tokens);
 			});
 		}
 

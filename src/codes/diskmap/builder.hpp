@@ -26,7 +26,7 @@ private:
     std::vector<std::string> heads;
     size_t current_bytes = 0;
 	uint64_t n_strings = 0;
-	[[maybe_unused]] std::string debug_last_string;
+	std::string debug_last_string;
 
     static constexpr size_t N = [] {
 		if constexpr (std::is_integral_v<Value>)

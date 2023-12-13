@@ -46,16 +46,9 @@ Index<LVT>::~Index()
 template<class LVT>
 std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj, size_t top_k)
 {
-	struct pending_result_t {
-		docid_t docid;
-		score_t score;
-
-		bool operator>(const pending_result_t& b) const {return score > b.score;}
-	};
-
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be popped
-	std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>> results;
+	pending_results_t results;
 
 	struct PostingListHelper {PostingList pl; typename PostingList::iterator it;};
 	std::list<PostingListHelper> posting_lists_its; //@fixme make it work with std::vector
@@ -148,25 +141,7 @@ std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj,
 		curr_docid = next_docid;
 	}
 
-	// Build results
-	std::vector<result_t> final_results;
-	final_results.reserve(top_k);
-
-	while(not results.empty())
-	{
-		auto res = results.top();
-		results.pop();
-
-		result_t res_f = {
-				.docno = std::string(base_docno + document_index[res.docid - base_docid].docno_offset),
-				.score = res.score
-		};
-
-		// Results are read in increasing order, we have to push them in front, to have descending order
-		final_results.insert(final_results.begin(), res_f);
-	}
-
-	return final_results;
+	return convert_results(results, top_k);
 }
 
 template<class LVT>

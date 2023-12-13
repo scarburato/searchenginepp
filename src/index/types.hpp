@@ -80,19 +80,21 @@ struct SigmaLexiconValue : public LexiconValue
 	std::vector<uint64_t> serialize () const
 	{
 		std::vector<uint64_t> ser;
+		ser.reserve(LexiconValue::serialize_size + skip_pointers.size() * 5);
 
 		// First part of data struct serialized as before
-		ser.insert(ser.end(), LexiconValue::serialize().begin(), LexiconValue::serialize().end());
+		auto ser_base = LexiconValue::serialize();
+		ser.insert(ser.end(), ser_base.begin(), ser_base.end());
 		
 		// Global sigmas
-		ser.push_back(static_cast<unsigned long>(bm25_sigma * fixed_point_factor));
-		ser.push_back(static_cast<unsigned long>(tfidf_sigma * fixed_point_factor));
+		ser.push_back(static_cast<uint64_t>(bm25_sigma * fixed_point_factor));
+		ser.push_back(static_cast<uint64_t>(tfidf_sigma * fixed_point_factor));
 
 		// Add sigma values 'n skip list
 		for (const auto& sp : skip_pointers)
 			ser.insert(ser.end(), {
-				static_cast<unsigned long>(sp.bm25_ub * fixed_point_factor),
-				static_cast<unsigned long>(sp.tfidf_ub * fixed_point_factor),
+				static_cast<uint64_t>(sp.bm25_ub * fixed_point_factor),
+				static_cast<uint64_t>(sp.tfidf_ub * fixed_point_factor),
 				sp.last_docid,
 				sp.docid_offset,
 				sp.freq_offset

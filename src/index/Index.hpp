@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <queue>
 #include <set>
 #include <unordered_map>
 #include <utility>
@@ -54,6 +55,40 @@ private:
 	const char* base_docno;
 
 	QueryScorer& scorer;
+
+	struct pending_result_t {
+		docid_t docid;
+		score_t score;
+
+		bool operator>(const pending_result_t& b) const {return score > b.score;}
+	};
+
+	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
+	// be popped
+	using pending_results_t = std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>>;
+
+	std::vector<result_t> convert_results(pending_results_t& results, size_t top_k)
+	{
+		// Build results
+		std::vector<result_t> final_results;
+		final_results.reserve(top_k);
+
+		while(not results.empty())
+		{
+			auto res = results.top();
+			results.pop();
+
+			result_t res_f = {
+					.docno = std::string(base_docno + document_index[res.docid - base_docid].docno_offset),
+					.score = res.score
+			};
+
+			// Results are read in increasing order, we have to push them in front, to have descending order
+			final_results.insert(final_results.begin(), res_f);
+		}
+
+		return final_results;
+	}
 public:
 	/**
 	 * @param lx the local lexicon
@@ -70,11 +105,7 @@ public:
 
 	void set_scorer(QueryScorer& qs) {scorer = qs;}
 	std::vector<result_t> query(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10);
-	std::vector<result_t> query_bmm(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10)
-	{
-		abort();
-	}
-
+	std::vector<result_t> query_bmm(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10);
 
 	class PostingList
 	{
@@ -142,6 +173,7 @@ public:
 		/** This stuff assumes that the freq decoder's begin is aligned (ie its offset is 0) */
 		offset get_offset(const iterator&);
 		const LVT& get_lexicon_value() const {return lv;}
+		const SigmaLexiconValue::skip_pointer_t& get_block([[maybe_unused]] const iterator& it) const {abort();}
 	};
 
 	PostingList get_posting_list(const std::string& term, const LexiconValue& lv) const {return PostingList(this, term, lv);}
