@@ -72,7 +72,7 @@ struct SigmaLexiconValue : public LexiconValue
 	skip_list_t skip_pointers;
 
 	static constexpr size_t serialize_size = 0;
-	static constexpr size_t fixed_point_factor = 1e4;
+	static constexpr size_t fixed_point_factor = 1e2;
 
 	SigmaLexiconValue(const LexiconValue& lv) : LexiconValue(lv) 
 	{};
@@ -107,12 +107,7 @@ struct SigmaLexiconValue : public LexiconValue
 
 	static SigmaLexiconValue deserialize(const std::vector<uint64_t>& ser)
 	{
-		SigmaLexiconValue slv;
-		slv.start_pos_docid = ser[0];
-		slv.end_pos_docid = ser[1];
-		slv.start_pos_freq = ser[2];
-		slv.end_pos_freq = ser[3];
-		slv.n_docs = ser[4];
+		SigmaLexiconValue slv = LexiconValue::deserialize({ser[0], ser[1], ser[2], ser[3], ser[4]});
 		slv.bm25_sigma = ser[5] / static_cast<double>(fixed_point_factor);
 		slv.tfidf_sigma = ser[6] / static_cast<double>(fixed_point_factor);
 

@@ -143,17 +143,11 @@ public:
 
 			iterator(PostingList const *parent, docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
 					parent(parent), docid_curr(docid_curr), freq_curr(freq_curr)
-			{
-				current.first = *docid_curr;
-				current.second = *freq_curr;
-			}
+			{}
 
 			iterator(PostingList const *parent, SigmaLexiconValue::skip_list_t::const_iterator current_block_it, docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
 					parent(parent), current_block_it(current_block_it), docid_curr(docid_curr), freq_curr(freq_curr)
-			{
-				current.first = *docid_curr;
-				current.second = *freq_curr;
-			}
+			{}
 
 			void skip_block() {abort();};
 		public:

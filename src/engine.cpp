@@ -75,11 +75,10 @@ int main(int argc, char** argv)
 		}
 
 		// Solve the query
-		auto i = 0;
-		for(auto& index : indices)
+		for(auto i = 0; auto& index : indices)
 		{
 			tp.add_job([&, pos = i++] {
-				results[pos] = index.index.query(tokens);
+				results[pos] = index.index.query_bmm(tokens);
 			});
 		}
 

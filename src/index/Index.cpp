@@ -1,6 +1,5 @@
 #include <iterator>
 #include <memory>
-//#include <iostream>
 #include "Index.hpp"
 #include "types.hpp"
 
@@ -30,6 +29,12 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 	size_t pivot = 0;
 	score_t θ = 0.0;
 	std::vector<score_t> upper_bounds;
+
+	// Order posting lists by increasing sigma. It is not required by BMM.
+	posting_lists_its.sort([](const PostingListHelper& a, const PostingListHelper& b)
+	{
+		return a.pl.get_lexicon_value().bm25_sigma < b.pl.get_lexicon_value().bm25_sigma;
+	});
 
 	// Initialize the ubber bounds vector
 	upper_bounds.push_back(posting_lists_its.begin()->pl.get_lexicon_value().bm25_sigma);
@@ -135,7 +140,9 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 template<>
 Index<SigmaLexiconValue>::PostingList::iterator Index<SigmaLexiconValue>::PostingList::begin() const
 {
-	return {this, lv.skip_pointers.begin(), docid_dec.begin(), freq_dec.begin()};
+	auto it = iterator{this, lv.skip_pointers.begin(), docid_dec.begin(), freq_dec.begin()};
+	it.current = {*it.docid_curr, *it.freq_curr};
+	return it;
 }
 
 template<>
@@ -196,7 +203,6 @@ void Index<SigmaLexiconValue>::PostingList::iterator::skip_block()
 	// We reached the end!
 	if(current_block_it == parent->lv.skip_pointers.end())
 		return;
-	//std::clog << "skipping block" << std::endl;
 
 	docid_curr = parent->docid_dec.at(current_block_it->docid_offset);
 	auto freq_off = codes::deserialize_bit_offset(current_block_it->freq_offset);
