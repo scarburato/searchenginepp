@@ -10,7 +10,6 @@ engine_options::engine_options(int argc, char **argv)
 			{"run-name",	required_argument, nullptr, 'r'},
 			{"algorithm",required_argument, nullptr, 'a'},
 			{"batch",	no_argument,       nullptr, 'b'},
-			{"data-dir",	required_argument, nullptr, 'd'},
 			{"threads",	required_argument, nullptr, 't'},
 			{"score",	required_argument, nullptr, 's'},
 			{nullptr, 0, nullptr, 0}
@@ -18,7 +17,7 @@ engine_options::engine_options(int argc, char **argv)
 
 	int c;
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "k:r:a:d:t:s:b", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "k:r:a:t:s:b", long_options, &option_index)) != -1)
 	{
 		switch (c)
 		{
@@ -40,9 +39,6 @@ engine_options::engine_options(int argc, char **argv)
 				break;
 			case 'b':
 				batch_mode = true;
-				break;
-			case 'd':
-				data_dir = optarg;
 				break;
 			case 't':
 				thread_count = std::stoi(optarg);
