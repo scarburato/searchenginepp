@@ -59,6 +59,7 @@ struct SigmaLexiconValue : public LexiconValue
 {
 	score_t bm25_sigma = 0;
 	score_t tfidf_sigma = 0;
+
 	struct skip_pointer_t
 	{
 		score_t bm25_ub = 0;
@@ -67,7 +68,8 @@ struct SigmaLexiconValue : public LexiconValue
 		size_t docid_offset;
 		size_t freq_offset;
 	};
-	std::vector<skip_pointer_t> skip_pointers;
+	using skip_list_t = std::vector<skip_pointer_t>;
+	skip_list_t skip_pointers;
 
 	static constexpr size_t serialize_size = 0;
 	static constexpr size_t fixed_point_factor = 1e4;

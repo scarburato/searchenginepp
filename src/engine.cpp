@@ -27,8 +27,7 @@ int main(int argc, char** argv)
 	memory_mmap global_lexicon_mem(in_dir/"global_lexicon");
 	sindex::Index<sindex::SigmaLexiconValue>::global_lexicon_t global_lexicon(global_lexicon_mem);
 
-	std::vector<index_worker_t<sindex::SigmaLexiconValue>> indices;
-	indices.reserve(100); // @TODO @FIXME SOLVE THIS REFERENCE MADNESS
+	std::list<index_worker_t<sindex::SigmaLexiconValue>> indices;
 
 	// VROOOOOM STANDARD IO
 	std::ios_base::sync_with_stdio(false);
@@ -80,7 +79,7 @@ int main(int argc, char** argv)
 		for(auto& index : indices)
 		{
 			tp.add_job([&, pos = i++] {
-				results[pos] = index.index.query_bmm(tokens);
+				results[pos] = index.index.query(tokens);
 			});
 		}
 

@@ -44,16 +44,11 @@ Index<LVT>::~Index()
 }
 
 template<class LVT>
-std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj, size_t top_k)
+std::pair<std::list<typename Index<LVT>::PostingListHelper>, docid_t> Index<LVT>::build_helpers(std::set<std::string> &query, bool conj)
 {
-	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
-	// be popped
-	pending_results_t results;
-
-	struct PostingListHelper {PostingList pl; typename PostingList::iterator it;};
-	std::list<PostingListHelper> posting_lists_its; //@fixme make it work with std::vector
+	std::list<PostingListHelper> posting_lists_its;
 	// size_t n_docs_to_process = 0; // Never used
-	docid_t docid_base = -1;
+	docid_t docid_base = DOCID_MAX;
 
 	// Iterate over all query terms. We remove useless terms and create the iterators of their posting lists
 	for(auto q_term_it = query.begin(); q_term_it != query.end();)
@@ -75,18 +70,30 @@ std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj,
 		const auto& [term, posting_info] = *posting_info_it;
 
 		PostingList pl(this, term, posting_info);
-		auto it = pl.begin();
-
 		// n_docs_to_process = std::max(n_docs_to_process, posting_info.n_docs);
+		posting_lists_its.emplace_back(std::move(pl));
+		const auto& it = posting_lists_its.back().it;
 
 		docid_base = std::min(docid_base, it->first);
-
-		posting_lists_its.push_back({pl, it});
 
 		++q_term_it;
 	}
 
-	docid_t curr_docid = docid_base;
+	return {std::move(posting_lists_its), docid_base};
+}
+
+template<class LVT>
+std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj, size_t top_k)
+{
+	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
+	// be popped
+	pending_results_t results;
+
+	auto [posting_lists_its, min_docid] = build_helpers(query, conj);
+	docid_t curr_docid = min_docid;
+
+	if(posting_lists_its.empty())
+		return {};
 
 	// Iterate all documents 'til we exhaust them
 	// O(|D| * |Q| * log(|K|))
@@ -124,7 +131,7 @@ std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj,
 		// Move iterators to current docid or (the next closest one)
 		for(auto posting_helper_it = posting_lists_its.begin(); posting_helper_it != posting_lists_its.end(); )
 		{
-			posting_helper_it->it.nextG(curr_docid, posting_helper_it->pl.end());
+			posting_helper_it->it.nextG(curr_docid);
 
 			// We exhausted this posting list, let's remove it
 			if(posting_helper_it->it == posting_helper_it->pl.end())
@@ -162,15 +169,15 @@ Index<LVT>::PostingList::PostingList(Index const *index, const std::string& term
 template<class LVT>
 typename Index<LVT>::PostingList::iterator Index<LVT>::PostingList::begin() const
 {
-	auto it = iterator(docid_dec.begin(), freq_dec.begin());
-	it.current = std::make_pair(*it.docid_curr, *it.freq_curr);
+	auto it = iterator{this, docid_dec.begin(), freq_dec.begin()};
+	it.current = {*it.docid_curr, *it.freq_curr};
 	return it;
 }
 
 template<class LVT>
 typename Index<LVT>::PostingList::iterator Index<LVT>::PostingList::end() const
 {
-	return {docid_dec.end(), freq_dec.end()};
+	return {this, docid_dec.end(), freq_dec.end()};
 }
 
 template<class LVT>
@@ -192,16 +199,16 @@ typename Index<LVT>::PostingList::offset Index<LVT>::PostingList::get_offset(con
 }
 
 template<class LVT>
-void Index<LVT>::PostingList::iterator::nextG(docid_t docid, const iterator& end)
+void Index<LVT>::PostingList::iterator::nextG(docid_t docid)
 {
-	while(*this != end and current.first <= docid)
+	while(*this != parent->end() and current.first <= docid)
 		++*this;
 }
 
 template<class LVT>
-void Index<LVT>::PostingList::iterator::nextGEQ(docid_t docid, const iterator& end)
+void Index<LVT>::PostingList::iterator::nextGEQ(docid_t docid)
 {
-	while(*this != end and current.first < docid)
+	while(*this != parent->end() and current.first < docid)
 		++*this;
 }
 
