@@ -127,6 +127,13 @@ public:
 	{
 		return iterator(end_it, end_it);
 	}
+
+	iterator at(size_t off, unsigned bit_off = 0) const
+	{
+		auto it = iterator(begin_it + off, end_it, bit_off);
+		it.parse_current();
+		return it;
+	}
 };
 
 template<typename RawDataIterator>

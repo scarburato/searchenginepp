@@ -63,6 +63,14 @@ private:
 		bool operator>(const pending_result_t& b) const {return score > b.score;}
 	};
 
+	struct PostingListHelper;
+
+	/**
+	 * Build the posting lists' iterators for the given query. If in conj mode it returns an empty list if one of the
+	 * terms is not in the lexicon.
+	 */
+	std::pair<std::list<PostingListHelper>, docid_t> build_helpers(std::set<std::string> &query, bool conj = false);
+
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be popped
 	using pending_results_t = std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>>;
@@ -104,8 +112,8 @@ public:
 	~Index();
 
 	void set_scorer(QueryScorer& qs) {scorer = qs;}
-	std::vector<result_t> query(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10);
-	std::vector<result_t> query_bmm(std::set<std::string>& query, bool and_mode = false, size_t top_k = 10);
+	std::vector<result_t> query(std::set<std::string> query, bool conj = false, size_t top_k = 10);
+	std::vector<result_t> query_bmm(std::set<std::string> query, size_t top_k = 10);
 
 	class PostingList
 	{
@@ -121,17 +129,27 @@ public:
 
 	public:
 		struct offset {uint64_t docid_off; uint64_t freq_off;};
+		struct value {docid_t docid; freq_t freq;};
 
 		class iterator
 		{
+			PostingList const *parent;
+			// Current block ptr to iterator. Only used in skip list specialization
+			SigmaLexiconValue::skip_list_t::const_iterator current_block_it;
 			docid_decoder_t::iterator docid_curr;
 			freq_decoder_t::iterator freq_curr;
 
 			std::pair<docid_t, freq_t> current;
 
-			iterator(docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
-					docid_curr(docid_curr), freq_curr(freq_curr)
+			iterator(PostingList const *parent, docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
+					parent(parent), docid_curr(docid_curr), freq_curr(freq_curr)
 			{}
+
+			iterator(PostingList const *parent, SigmaLexiconValue::skip_list_t::const_iterator current_block_it, docid_decoder_t::iterator docid_curr, freq_decoder_t::iterator freq_curr):
+					parent(parent), current_block_it(current_block_it), docid_curr(docid_curr), freq_curr(freq_curr)
+			{}
+
+			void skip_block() {abort();};
 		public:
 
 		 	const std::pair<docid_t, freq_t>& operator*() const {return current;}
@@ -141,8 +159,13 @@ public:
 			{
 				++docid_curr;
 				++freq_curr;
-				current.first = *docid_curr;
-				current.second = *freq_curr;
+
+				// Parse
+				if(*this != parent->end())
+				{
+					current.first = *docid_curr;
+					current.second = *freq_curr;
+				}
 				return *this;
 			}
 
@@ -157,8 +180,8 @@ public:
 			bool operator==(const iterator& b) const {return docid_curr == b.docid_curr;}
 			bool operator!=(const iterator& b) const {return !(*this == b);}
 
-			void nextG(docid_t, const iterator&);
-			void nextGEQ(docid_t, const iterator&);
+			void nextG(docid_t);
+			void nextGEQ(docid_t);
 
 			friend PostingList;
 		};
@@ -178,7 +201,35 @@ public:
 
 	PostingList get_posting_list(const std::string& term, const LexiconValue& lv) const {return PostingList(this, term, lv);}
 	local_lexicon_t& get_local_lexicon() {return local_lexicon;}
+
+private:
+	struct PostingListHelper
+	{
+		PostingList pl; typename PostingList::iterator it;
+
+		explicit PostingListHelper(PostingList&& pl): pl(std::move(pl)), it(this->pl.begin()) {}
+	};
 };
+
+/** Specializations for skipping lists **/
+
+template<>
+Index<SigmaLexiconValue>::PostingList::iterator Index<SigmaLexiconValue>::PostingList::begin() const;
+
+template<>
+Index<SigmaLexiconValue>::PostingList::iterator Index<SigmaLexiconValue>::PostingList::end() const;
+
+template<>
+Index<SigmaLexiconValue>::PostingList::iterator& Index<SigmaLexiconValue>::PostingList::iterator::operator++();
+
+template<>
+void Index<SigmaLexiconValue>::PostingList::iterator::nextG(sindex::docid_t);
+
+template<>
+void Index<SigmaLexiconValue>::PostingList::iterator::nextGEQ(sindex::docid_t);
+
+template<>
+void Index<SigmaLexiconValue>::PostingList::iterator::skip_block();
 
 }
 

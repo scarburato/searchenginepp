@@ -1,8 +1,7 @@
-#include "Index.hpp"
-#include "types.hpp"
-#include <cstddef>
 #include <iterator>
 #include <memory>
+#include "Index.hpp"
+#include "types.hpp"
 
 namespace sindex
 {
@@ -20,52 +19,22 @@ const SigmaLexiconValue::skip_pointer_t& Index<SigmaLexiconValue>::PostingList::
 }
 
 template<>
-std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> &query, bool conj, size_t top_k)
+std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> query, size_t top_k)
 {
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be popped
 	pending_results_t results;
-
-	struct PostingListHelper {PostingList pl; typename PostingList::iterator it;};
-	std::list<PostingListHelper> posting_lists_its; //@fixme make it work with std::vector
-	// size_t n_docs_to_process = 0; // Never used
-	docid_t docid_base = -1;
-
-	// Iterate over all query terms. We remove useless terms and create the iterators of their posting lists
-	for(auto q_term_it = query.begin(); q_term_it != query.end();)
-	{
-		auto posting_info_it = local_lexicon.find(*q_term_it);
-
-		// Element not in lexicon, we'll not consider it
-		if(posting_info_it == local_lexicon.end())
-		{
-			// If conjunctive mode, we can stop here
-			if(conj)
-				return {};
-
-			q_term_it = query.erase(q_term_it);
-			continue;
-		}
-
-		// Create 'n load posting list's info into vector
-		const auto& [term, posting_info] = *posting_info_it;
-
-		PostingList pl(this, term, posting_info);
-		auto it = pl.begin();
-
-		// n_docs_to_process = std::max(n_docs_to_process, posting_info.n_docs);
-
-		docid_base = std::min(docid_base, it->first);
-
-		posting_lists_its.push_back({pl, it});
-
-		++q_term_it;
-	}
-
-	docid_t curr_docid = docid_base;
+	auto [posting_lists_its, min_docid] = build_helpers(query);
+	docid_t curr_docid = min_docid;
 	size_t pivot = 0;
 	score_t θ = 0.0;
 	std::vector<score_t> upper_bounds;
+
+	// Order posting lists by increasing sigma. It is not required by BMM.
+	posting_lists_its.sort([](const PostingListHelper& a, const PostingListHelper& b)
+	{
+		return a.pl.get_lexicon_value().bm25_sigma < b.pl.get_lexicon_value().bm25_sigma;
+	});
 
 	// Initialize the ubber bounds vector
 	upper_bounds.push_back(posting_lists_its.begin()->pl.get_lexicon_value().bm25_sigma);
@@ -119,14 +88,14 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 					break;
 
 				// Move to next posting @todo @fixme use the damn skip list to GEQ
-				p_it->it.nextGEQ(curr_docid, p_it->pl.end());
+				p_it->it.nextGEQ(curr_docid);
 				if(p_it->it != p_it->pl.end() and p_it->it->first == curr_docid)
 					score += p_it->pl.score(p_it->it, scorer);
 			}
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results
-		if(results.empty() or score > results.top().score)
+		if(results.size() < top_k or score > results.top().score)
 		{
 			results.emplace(curr_docid, score);
 
@@ -168,4 +137,80 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 	return convert_results(results, top_k);
 }
 
+template<>
+Index<SigmaLexiconValue>::PostingList::iterator Index<SigmaLexiconValue>::PostingList::begin() const
+{
+	auto it = iterator{this, lv.skip_pointers.begin(), docid_dec.begin(), freq_dec.begin()};
+	it.current = {*it.docid_curr, *it.freq_curr};
+	return it;
+}
+
+template<>
+Index<SigmaLexiconValue>::PostingList::iterator Index<SigmaLexiconValue>::PostingList::end() const
+{
+	return {this, lv.skip_pointers.end(), docid_dec.end(), freq_dec.end()};
+}
+
+template<>
+Index<SigmaLexiconValue>::PostingList::iterator& Index<SigmaLexiconValue>::PostingList::iterator::operator++()
+{
+	++docid_curr;
+	++freq_curr;
+
+	// Parse
+	if(*this != parent->end())
+	{
+		current.first = *docid_curr;
+		current.second = *freq_curr;
+
+		// Specialization: if we reached end of a block, we move to the next one
+		if(current_block_it != parent->lv.skip_pointers.end() and current.first > current_block_it->last_docid)
+			++current_block_it;
+	}
+	return *this;
+}
+
+template<>
+void Index<SigmaLexiconValue>::PostingList::iterator::nextG(sindex::docid_t docid)
+{
+	// Move to the next block until we find one that contains the docid
+	while(current_block_it != parent->lv.skip_pointers.end() and current_block_it->last_docid < docid)
+		skip_block();
+
+	// Found block, now iterate until we required docid
+	while(*this != parent->end() and current.first <= docid)
+		++*this;
+}
+
+template<>
+void Index<SigmaLexiconValue>::PostingList::iterator::nextGEQ(sindex::docid_t docid)
+{
+	// Move to the next block until we find one that contains the docid
+	while(current_block_it != parent->lv.skip_pointers.end() and current_block_it->last_docid < docid)
+		skip_block();
+
+	// Found block, now iterate until we required docid
+	while(*this != parent->end() and current.first < docid)
+		++*this;
+}
+
+template<>
+void Index<SigmaLexiconValue>::PostingList::iterator::skip_block()
+{
+	// Move to the next block
+	++current_block_it;
+
+	// We reached the end!
+	if(current_block_it == parent->lv.skip_pointers.end())
+		return;
+
+	docid_curr = parent->docid_dec.at(current_block_it->docid_offset);
+	auto freq_off = codes::deserialize_bit_offset(current_block_it->freq_offset);
+	freq_curr = parent->freq_dec.at(freq_off.first, freq_off.second);
+
+	current.first = *docid_curr;
+	current.second = *freq_curr;
+
+	assert(current.first - parent->index->base_docid < parent->index->n_docs);
+}
 }

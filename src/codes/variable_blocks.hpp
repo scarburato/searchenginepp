@@ -81,6 +81,13 @@ public:
 	{
 		return iterator(encoded_end, encoded_end);
 	}
+
+	iterator at(size_t off) const
+	{
+		auto begin = iterator(encoded_begin + off, encoded_end);
+		begin.parse_and_align();
+		return begin;
+	}
 };
 
 template<typename RawDataIterator>
@@ -146,7 +153,6 @@ public:
 
 	iterator begin() const {return iterator(raw_begin);}
 	iterator end() const {return iterator(raw_end);}
-
 };
 
 struct VariableBytes

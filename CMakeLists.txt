@@ -63,6 +63,8 @@ add_library(libprogetto
         src/util/memory.hpp
         src/index/query_scorer.cpp
         src/index/query_scorer.hpp
+        src/util/engine_options.cpp
+        src/util/engine_options.hpp
 )
 
 target_link_libraries(libprogetto PUBLIC "${STEMMER_LIB}" "${HYPERSCAN_LIB}")

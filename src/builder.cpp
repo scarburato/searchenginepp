@@ -20,8 +20,8 @@
 typedef std::pair<sindex::docno_t, std::string> doc_tuple_t;
 
 // Chunks' sizes
-constexpr size_t MAX_CHUNK_SPACE = 675'000'000;
-constexpr size_t SKIP_BLOCK_SIZE = 2'000;
+constexpr size_t MAX_CHUNK_SPACE = 700'000'000;
+constexpr size_t SKIP_BLOCK_SIZE = 15'000;
 
 std::atomic<sindex::doclen_t> global_doc_len_sum = 0;
 std::vector<std::filesystem::path> index_folders_paths;
