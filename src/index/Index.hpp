@@ -112,8 +112,8 @@ public:
 	~Index();
 
 	void set_scorer(QueryScorer& qs) {scorer = qs;}
-	std::vector<result_t> query(std::set<std::string>& query, bool conj = false, size_t top_k = 10);
-	std::vector<result_t> query_bmm(std::set<std::string>& query, size_t top_k = 10);
+	std::vector<result_t> query(std::set<std::string> query, bool conj = false, size_t top_k = 10);
+	std::vector<result_t> query_bmm(std::set<std::string> query, size_t top_k = 10);
 
 	class PostingList
 	{

@@ -83,7 +83,7 @@ std::pair<std::list<typename Index<LVT>::PostingListHelper>, docid_t> Index<LVT>
 }
 
 template<class LVT>
-std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj, size_t top_k)
+std::vector<result_t> Index<LVT>::query(std::set<std::string> query, bool conj, size_t top_k)
 {
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be popped
@@ -117,7 +117,7 @@ std::vector<result_t> Index<LVT>::query(std::set<std::string> &query, bool conj,
 			}
 
 			// Push computed result in the results, only if our score is greater than worst scoring doc in results
-			if(results.empty() or score > results.top().score)
+			if(results.size() < top_k or score > results.top().score)
 			{
 				results.emplace(curr_docid, score);
 

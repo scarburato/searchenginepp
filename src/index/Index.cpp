@@ -19,7 +19,7 @@ const SigmaLexiconValue::skip_pointer_t& Index<SigmaLexiconValue>::PostingList::
 }
 
 template<>
-std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> &query, size_t top_k)
+std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> query, size_t top_k)
 {
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
 	// be popped
@@ -95,7 +95,7 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 		}
 
 		// Push computed result in the results, only if our score is greater than worst scoring doc in results
-		if(results.empty() or score > results.top().score)
+		if(results.size() < top_k or score > results.top().score)
 		{
 			results.emplace(curr_docid, score);
 
