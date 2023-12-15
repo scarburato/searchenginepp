@@ -59,7 +59,7 @@ If all tests return RUN OK, it means all tests passed successfully.
 To read the collection efficiently, use the following command:
 
 ```bash
-tar -xOzf ../data/collection.tar.gz collection.tsv | ./builder
+time tar -xOzf ../data/collection.tar.gz collection.tsv | ./builder
 ```
 
 The use of `tar` alongside UNIX's pipes, allows the system to decompress the collection
