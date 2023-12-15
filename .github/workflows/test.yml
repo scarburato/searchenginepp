@@ -1,0 +1,38 @@
+name: Run Google Test
+
+on:
+  push:
+    branches:
+      - master  # Replace with the branch you want to trigger the workflow on
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libstemmer-dev libhyperscan-dev
+
+    - name: Build project with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_STEMMER:BOOL=ON -DFIX_MSMARCO_LATIN1:BOOL=ON -DTEXT_FULL_LATIN1_CASE:BOOL=ON ..
+        make -j4
+
+    - name: Run Google Test
+      run: |
+        cd build
+        ./tests/Google_Tests_run
