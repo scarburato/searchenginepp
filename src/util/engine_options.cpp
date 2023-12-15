@@ -8,7 +8,7 @@ engine_options::engine_options(int argc, char **argv)
 			/*   NAME       ARGUMENT           FLAG  SHORTNAME */
 			{"top-k",	required_argument, nullptr, 'k'},
 			{"run-name",	required_argument, nullptr, 'r'},
-			{"algorithm",required_argument, nullptr, 'a'},
+			{"algorithm",	required_argument, nullptr, 'a'},
 			{"batch",	no_argument,       nullptr, 'b'},
 			{"threads",	required_argument, nullptr, 't'},
 			{"score",	required_argument, nullptr, 's'},
@@ -21,36 +21,36 @@ engine_options::engine_options(int argc, char **argv)
 	{
 		switch (c)
 		{
-			case 'k':
-				k = std::stoi(optarg);
-				break;
-			case 'r':
-				run_name = optarg;
-				break;
-			case 'a':
-				if(optarg == std::string("daat-disjunctive") or optarg == std::string("daat"))
-					algorithm = DAAT_DISJUNCTIVE;
-				else if(optarg == std::string("daat-conjunctive") or optarg == std::string("daat-c"))
-					algorithm = DAAT_CONJUNCTIVE;
-				else if(optarg == std::string("bmm"))
-					algorithm = BMM;
-				else
-					algorithm = DAAT_DISJUNCTIVE;
-				break;
-			case 'b':
-				batch_mode = true;
-				break;
-			case 't':
-				thread_count = std::stoi(optarg);
-				break;
-			case 's':
-				if(optarg == std::string("tfidf"))
-					score = TFIDF;
-				else // assume BM25
-					score = BM25;
-				break;
-			default:
-				break;
+		case 'k':
+			k = std::stoi(optarg);
+			break;
+		case 'r':
+			run_name = optarg;
+			break;
+		case 'a':
+			if(optarg == std::string("daat-disjunctive") or optarg == std::string("daat"))
+				algorithm = DAAT_DISJUNCTIVE;
+			else if(optarg == std::string("daat-conjunctive") or optarg == std::string("daat-c"))
+				algorithm = DAAT_CONJUNCTIVE;
+			else if(optarg == std::string("bmm"))
+				algorithm = BMM;
+			else
+				algorithm = DAAT_DISJUNCTIVE;
+			break;
+		case 'b':
+			batch_mode = true;
+			break;
+		case 't':
+			thread_count = std::stoi(optarg);
+			break;
+		case 's':
+			if(optarg == std::string("tfidf"))
+				score = TFIDF;
+			else // assume BM25
+				score = BM25;
+			break;
+		default:
+			break;
 		}
 	}
 
