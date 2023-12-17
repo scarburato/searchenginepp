@@ -13,7 +13,7 @@ using VariableValue = std::vector<uint64_t>;
 class Generator
 {
 	std::mt19937 gen{0xcafebabe};
-	std::uniform_int_distribution<char> distrib_chars{'a', 'z'};
+	std::uniform_int_distribution<unsigned char> distrib_chars{'a', 'z'};
 	std::uniform_int_distribution<uint64_t> distrib_vals{0, UINT64_MAX / 8};
 	std::uniform_real_distribution<double> distrib_prob{0.0, 1.0};
 public:

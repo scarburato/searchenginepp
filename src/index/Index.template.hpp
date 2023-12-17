@@ -119,7 +119,7 @@ std::vector<result_t> Index<LVT>::query(std::set<std::string> query, bool conj, 
 			// Push computed result in the results, only if our score is greater than worst scoring doc in results
 			if(results.size() < top_k or score > results.top().score)
 			{
-				results.emplace(curr_docid, score);
+				results.push({curr_docid, score});
 
 				// If necessary pop-out the worst scoring element
 				if (results.size() > top_k)

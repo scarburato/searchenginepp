@@ -35,8 +35,8 @@ brew install cmake snowball hyperscan
 
 If you're not building on an amd64 (x86) system, you have to install `vectorscan` in place of `hyperscan`.
 
-The `CMakeLists.txt` file assumes that brew install its stuff in `/usr/local`, if your version of brew differs you have to
-modify the `CMakeLists.txt` file accordingly.
+The `CMakeLists.txt` file assumes that brew install its stuff in `$(brew --prefix)`, if your version of brew differs
+then you have to modify the `CMakeLists.txt` file accordingly.
 
 ## Build
 

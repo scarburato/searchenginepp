@@ -120,7 +120,13 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	std::ofstream lexicon_teletype(out_dir / "global_lexicon", std::ios::binary);
 
 	// Open up all files and maps from the local lexicon
-	struct lexicon_temp {memory_mmap file; codes::disk_map<sindex::LexiconValue> lexicon;};
+	struct lexicon_temp
+	{
+		memory_mmap file; codes::disk_map<sindex::LexiconValue> lexicon;
+		// This is constructor is necessary for older version of Apple's clang :(((
+		lexicon_temp(memory_mmap&& file, codes::disk_map<sindex::LexiconValue>&& lexicon) :
+			file(std::move(file)), lexicon(std::move(lexicon)) {}
+	};
 	std::vector<std::unique_ptr<lexicon_temp>> lexica;
 	lexica.reserve(index_folders_paths.size());
 
@@ -128,7 +134,7 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	{
 		memory_mmap lexicon_mmap(db_path/"lexicon_temp");
 
-		lexica.emplace_back(
+		lexica.push_back(
 				std::make_unique<lexicon_temp>(
 						std::move(lexicon_mmap), codes::disk_map<sindex::LexiconValue>(lexicon_mmap)));
 	}

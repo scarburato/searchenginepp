@@ -1,5 +1,6 @@
 #pragma once
 #include <libstemmer.h>
+#include <sstream>
 #include <string>
 #include <pcrecpp.h>
 #include <vector>
