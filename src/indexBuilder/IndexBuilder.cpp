@@ -1,17 +1,6 @@
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <ranges>
 #include <iostream>
-#include <bits/stdc++.h> 
-#include <unordered_map>
 #include <vector>
 #include "IndexBuilder.hpp"
-#include "../index/types.hpp"
-#include "../codes/unary.hpp"
-#include "../codes/variable_blocks.hpp"
-#include "../meta.hpp"
-#include "../codes/diskmap/diskmap.hpp"
 
 namespace sindex
 {

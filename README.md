@@ -7,20 +7,36 @@ A C++ program that creates an inverted index structure from a set of text docume
 To clone the repository, use the following command:
 
 ```bash
-git clone https://github.com/scarburato/searchenginepp.git
+git clone --recursive https://github.com/scarburato/searchenginepp.git
 ```
 
 ## Dependencies
+
+### Ubuntu
 
 To ensure the program works on Ubuntu, make sure you have the following dependencies installed:
 
 ```bash
 sudo apt-get update
-sudo apt install build-essential cmake libstemmer-dev libhyperscan-dev libpcrecpp-dev
+sudo apt install build-essential cmake libstemmer-dev libhyperscan-dev
 ```
 
 If you're not building on an amd64 (x86) system you may have to install `vectorscan` in place of `hyperscan`, on Ubuntu
 the package to install should be named `libvectorscan-dev`.
+
+### MacOS
+
+Assuming you have already installed a C++ compiler and the (brew packet manager)[https://formulae.brew.sh/]; to compile
+on MacOS, you need to install the following dependencies:
+
+```shell
+brew install cmake snowball hyperscan
+```
+
+If you're not building on an amd64 (x86) system, you have to install `vectorscan` in place of `hyperscan`.
+
+The `CMakeLists.txt` file assumes that brew install its stuff in `/usr/local`, if your version of brew differs you have to
+modify the `CMakeLists.txt` file accordingly.
 
 ## Build
 

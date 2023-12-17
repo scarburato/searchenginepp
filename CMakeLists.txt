@@ -5,7 +5,26 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fno-exceptions")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Ofast -march=native -DNDEBUG")
+
+if(APPLE)
+    execute_process(
+            COMMAND brew --prefix
+            RESULT_VARIABLE BREW_EX
+            OUTPUT_VARIABLE BREW_EX_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if (BREW_EX EQUAL 0 AND EXISTS "${BREW_EX_PREFIX}")
+        message(STATUS "Found the damned brew at: ${BREW_EX_PREFIX}")
+    else()
+        message(WARNING "Brew not found I MAY NOT BE ABLE TO COMPILE WITH SUCH CONFIGURATION.")
+        message(WARNING "Assuming brew is at /usr/local")
+        set(BREW_EX_PREFIX "/usr/local")
+    endif()
+
+    list(APPEND CMAKE_PREFIX_PATH ${BREW_EX_PREFIX})
+    include_directories(${BREW_EX_PREFIX}/include)
+endif()
 
 option(USE_STEMMER "Enable or disable Snowball's stemmer and stopword removal" ON)
 option(FIX_MSMARCO_LATIN1 "Enable or disable heuristic and encoding fix for certain wronly encoded docs in MSMARCO" OFF)
@@ -32,7 +51,7 @@ endif()
 find_library(STEMMER_LIB stemmer REQUIRED)
 
 # ICU
-find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
+#find_package(ICU 61.0 COMPONENTS uc i18n REQUIRED)
 
 find_library(HYPERSCAN_LIB hs REQUIRED)
 
@@ -74,8 +93,7 @@ add_subdirectory(tests)
 add_executable(prova src/prova_main.cpp)
 target_link_libraries(prova PRIVATE libprogetto)
 
-add_executable(builder src/builder.cpp
-)
+add_executable(builder src/builder.cpp)
 target_link_libraries(builder PRIVATE libprogetto)
 
 add_executable(engine src/engine.cpp)

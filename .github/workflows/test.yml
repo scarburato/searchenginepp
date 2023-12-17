@@ -3,7 +3,7 @@ name: Run Google Test
 on:
   push:
     branches:
-      - master  # Replace with the branch you want to trigger the workflow on
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, macos-latest]
 
     steps:
     - name: Checkout repository
@@ -22,8 +22,12 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake libstemmer-dev libhyperscan-dev
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libstemmer-dev libhyperscan-dev
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          brew install cmake snowball hyperscan
+        fi
 
     - name: Build project with CMake
       run: |
