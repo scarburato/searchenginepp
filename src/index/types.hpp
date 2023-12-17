@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <limits>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
