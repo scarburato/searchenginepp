@@ -26,7 +26,7 @@ the package to install should be named `libvectorscan-dev`.
 
 ### MacOS
 
-Assuming you have already installed a C++ compiler and the (brew packet manager)[https://formulae.brew.sh/]; to compile
+Assuming you have already installed a C++ compiler and the [brew packet manager](https://formulae.brew.sh/); to compile
 on MacOS, you need to install the following dependencies:
 
 ```shell
@@ -77,6 +77,9 @@ To read the collection efficiently, use the following command:
 ```bash
 time tar -xOzf ../data/collection.tar.gz collection.tsv | ./builder
 ```
+
+On MacOS, you may find that GNU's implementation of `tar` is faster; you can install it with brew 
+--- `brew install gnu-tar` --- and then replace `tar` with `gtar` in the command above.
 
 The use of `tar` alongside UNIX's pipes, allows the system to decompress the collection
 in blocks, and keep in the input buffer of only the chunk that's being proccessed at the moment,
