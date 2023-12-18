@@ -1,5 +1,7 @@
 # MIRCV's project: SEPP (Search Engine ++)
 
+![](https://github.com/scarburato/searchenginepp/actions/workflows/test.yml/badge.svg)
+
 A C++ program that creates an inverted index structure from a set of text documents and a program that processes queries over such inverted index.
 
 ## Clone the Repository
@@ -49,7 +51,10 @@ cmake -DCMAKE_BUILD_TYPE=Release -DUSE_STEMMER:BOOL=ON -DFIX_MSMARCO_LATIN1:BOOL
 make -j8
 ```
 
-you should replace the `-j8` flag with the number of cores in your CPU
+you should replace the `-j8` flag with the number of cores in your CPU.
+
+On MacOS,  If perfidious Apple's clang gives you problems compiling, you should consider installing GNU GCC or a more
+recent version of clang with brew.
 
 ### CMake options
 
