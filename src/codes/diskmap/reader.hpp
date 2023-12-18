@@ -24,7 +24,7 @@ private:
 		size_t M; // total number of strings
 		size_t offset_to_heads; // offset to index string
 		size_t n_blocks; // number of strings
-	};
+	}  __attribute__((__packed__));
 
 	uint8_t *raw_data;
 	uint8_t *cblocks_base;
