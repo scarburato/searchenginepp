@@ -5,13 +5,14 @@ on:
     branches:
       - master
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build:
-    runs-on: [ubuntu-latest, macos-latest]
+  build_and_test:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+
+    name: Build & test on ${{ matrix.os }}.
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: Checkout repository
@@ -19,15 +20,16 @@ jobs:
       with:
         submodules: recursive
 
-
-    - name: Install dependencies
+    - name: Install Ubuntu dependencies
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake libstemmer-dev libhyperscan-dev
-        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-          brew install cmake snowball hyperscan
-        fi
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libstemmer-dev libhyperscan-dev
+
+    - name: Install macOS dependencies
+      if: ${{ matrix.os == 'macos-latest' }}
+      run: |
+        brew install cmake snowball hyperscan
 
     - name: Build project with CMake
       run: |
