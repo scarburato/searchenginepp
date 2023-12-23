@@ -1,4 +1,4 @@
-name: Run Google Test
+name: Build & test
 
 on:
   push:

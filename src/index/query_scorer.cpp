@@ -43,12 +43,32 @@ score_t QueryTFIDFScorer::idf(size_t n_docs, freq_t df_term)
 	return log2((double) n_docs / (double) df_term);
 }
 
+score_t QueryTFIDFScorer::get_sigma(const SigmaLexiconValue &lv) const
+{
+	return lv.tfidf_sigma;
+}
+
+score_t QueryTFIDFScorer::get_sigma(const SigmaLexiconValue::skip_pointer_t &skip_ptr) const
+{
+	return skip_ptr.tfidf_ub;
+}
+
 QueryBM25Scorer::QueryBM25Scorer(double k1, double b) : k1(k1), b(b)
 {}
 
 score_t QueryBM25Scorer::score(sindex::freq_t tf_term_doc, sindex::score_t idf, sindex::doclen_t dl, double avgdl) const
 {
 	return (tf_term_doc / (k1*((1-b) + b*dl/avgdl) + tf_term_doc)) * idf;
+}
+
+score_t QueryBM25Scorer::get_sigma(const SigmaLexiconValue &lv) const
+{
+	return lv.bm25_sigma;
+}
+
+score_t QueryBM25Scorer::get_sigma(const SigmaLexiconValue::skip_pointer_t &skip_ptr) const
+{
+	return skip_ptr.bm25_ub;
 }
 
 

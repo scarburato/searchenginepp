@@ -3,19 +3,6 @@
 
 namespace sindex
 {
-
-template<>
-const SigmaLexiconValue::skip_pointer_t& Index<SigmaLexiconValue>::PostingList::get_block(const iterator& it) const
-{
-	auto block_it = lv.skip_pointers.begin();
-
-	// Find the block that contains the current iterator
-	while(block_it->last_docid < it->first)
-		++block_it;
-
-	return *block_it;
-}
-
 template<>
 std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> query, size_t top_k)
 {
@@ -29,19 +16,19 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 	std::vector<score_t> upper_bounds;
 
 	// Order posting lists by increasing sigma. It is not required by BMM.
-	posting_lists_its.sort([](const PostingListHelper& a, const PostingListHelper& b)
+	posting_lists_its.sort([this](const PostingListHelper& a, const PostingListHelper& b)
 	{
-		return a.pl.get_lexicon_value().bm25_sigma < b.pl.get_lexicon_value().bm25_sigma;
+		return scorer.get_sigma(a.pl.get_lexicon_value()) < scorer.get_sigma(b.pl.get_lexicon_value());
 	});
 
 	// Initialize the ubber bounds vector
-	upper_bounds.push_back(posting_lists_its.begin()->pl.get_lexicon_value().bm25_sigma);
+	upper_bounds.push_back(scorer.get_sigma(posting_lists_its.begin()->pl.get_lexicon_value()));
 	for(auto it = posting_lists_its.begin(); it != posting_lists_its.end(); ++it)
 	{
 		if(it == posting_lists_its.begin())
 			continue;
 
-		upper_bounds.push_back(upper_bounds.back() + it->pl.get_lexicon_value().bm25_sigma);
+		upper_bounds.push_back(upper_bounds.back() + scorer.get_sigma(it->pl.get_lexicon_value()));
 	}
 
 	// Iterate all documents 'til we exhaust them or the pruning condition is met
@@ -72,20 +59,20 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 			std::vector<score_t> bub(pivot);
 
 			// Populate the bub's array
-			bub[0] = p_it->pl.get_block(p_it->it).bm25_ub;
+			bub[0] = scorer.get_sigma(p_it->it.get_current_skip_block());
 			for(size_t i = 1; i < pivot; ++i)
 			{
 				++p_it;
-				bub[i] = bub[i - 1] + p_it->pl.get_block(p_it->it).bm25_ub;
+				bub[i] = bub[i - 1] + scorer.get_sigma(p_it->it.get_current_skip_block());
 			}
 			
 			for(size_t j = 0; j < pivot; ++j)
 			{
 				size_t i = pivot - j - 1;
-				if(score + bub[i] < θ)
+				if(score + bub[i] <= θ)
 					break;
 
-				// Move to next posting @todo @fixme use the damn skip list to GEQ
+				// Move to next posting
 				p_it->it.nextGEQ(curr_docid);
 				if(p_it->it != p_it->pl.end() and p_it->it->first == curr_docid)
 					score += p_it->pl.score(p_it->it, scorer);
@@ -211,4 +198,11 @@ void Index<SigmaLexiconValue>::PostingList::iterator::skip_block()
 
 	assert(current.first - parent->index->base_docid < parent->index->n_docs);
 }
+
+template<>
+const SigmaLexiconValue::skip_pointer_t& Index<SigmaLexiconValue>::PostingList::iterator::get_current_skip_block() const
+{
+	return *current_block_it;
+}
+
 }

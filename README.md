@@ -37,8 +37,8 @@ brew install cmake snowball hyperscan
 
 If you're not building on an amd64 (x86) system, you have to install `vectorscan` in place of `hyperscan`.
 
-The `CMakeLists.txt` file assumes that brew install its stuff in `$(brew --prefix)`, if your version of brew differs
-then you have to modify the `CMakeLists.txt` file accordingly.
+The `CMakeLists.txt` file assumes that brew installs its stuff in `$(brew --prefix)`, if your version of brew differs
+then modify the `CMakeLists.txt` file accordingly.
 
 ## Build
 
@@ -53,8 +53,8 @@ make -j8
 
 you should replace the `-j8` flag with the number of cores in your CPU.
 
-On MacOS,  If perfidious Apple's clang gives you problems compiling, you should consider installing GNU GCC or a more
-recent version of clang with brew.
+On MacOS, if perfidious Apple's clang gives you problems compiling, you should consider installing GNU GCC or a more
+recent version of clang through brew.
 
 ### CMake options
 

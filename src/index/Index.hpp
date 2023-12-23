@@ -182,6 +182,7 @@ public:
 
 			void nextG(docid_t);
 			void nextGEQ(docid_t);
+			const SigmaLexiconValue::skip_pointer_t& get_current_skip_block() const {abort();};
 
 			friend PostingList;
 		};
@@ -196,7 +197,6 @@ public:
 		/** This stuff assumes that the freq decoder's begin is aligned (ie its offset is 0) */
 		offset get_offset(const iterator&);
 		const LVT& get_lexicon_value() const {return lv;}
-		const SigmaLexiconValue::skip_pointer_t& get_block([[maybe_unused]] const iterator& it) const {abort();}
 	};
 
 	PostingList get_posting_list(const std::string& term, const LexiconValue& lv) const {return PostingList(this, term, lv);}
@@ -230,6 +230,9 @@ void Index<SigmaLexiconValue>::PostingList::iterator::nextGEQ(sindex::docid_t);
 
 template<>
 void Index<SigmaLexiconValue>::PostingList::iterator::skip_block();
+
+template<>
+const SigmaLexiconValue::skip_pointer_t& Index<SigmaLexiconValue>::PostingList::iterator::get_current_skip_block() const;
 
 }
 
