@@ -16,19 +16,25 @@
 
 namespace codes
 {
-
+/*
+ *   disk_map_writer class for writing key-value pairs to disk efficiently
+ * - Handles writing data blocks to a stream, managing metadata, and finalizing the storage structure.
+ * - Utilizes variable compression techniques to optimize storage space.
+ */
 template<class Value, size_t B = BLOCK_SIZE>
 class disk_map_writer
 {
 private:
-    std::ostream& teletype;
-    off_t metadata_block_off;
-    std::vector<std::string> heads;
-    size_t current_bytes = 0;
-	uint64_t n_strings = 0;
-	std::string debug_last_string;
+    std::ostream& teletype; // Output stream
+    off_t metadata_block_off; // Offset for metadata block
+    std::vector<std::string> heads; // vector storing keys
+    size_t current_bytes = 0; // Current bytes written
+	uint64_t n_strings = 0; // total string written
+	std::string debug_last_string; // Debug information for the last string processed
 
+	// Constants and functions needed within the class
     static constexpr size_t N = [] {
+		// Determine N based on the type of 'Value'
 		if constexpr (std::is_integral_v<Value>)
 			return 1;
 		else if constexpr (is_std_array_v<Value>)
@@ -37,6 +43,7 @@ private:
 			return Value::serialize_size;
 	}();
 
+	// Function to compute the common prefix between two strings
     static size_t compute_common_prefix(const char *a, const char *b)
     {
         size_t common_len = 0;
@@ -45,50 +52,56 @@ private:
 
         return common_len;
     }
-
+	// Function to align stream to the block size
     static void align_stream_to_block(std::ostream& ostr)
     {
         size_t next_block_off = B - ostr.tellp() % B;
         if(next_block_off != B)
             ostr.seekp(next_block_off, std::ios_base::cur);
     }
-
+	// Function to create a new block and write data to it
     template<class Container>
     void new_block(const std::string& key, Container& compressed_values, size_t cvals_size)
     {
-        heads.push_back(key);
-        align_stream_to_block(teletype);
+        heads.push_back(key); // add key to heads
+        align_stream_to_block(teletype); // Align stream to block size
 
-        auto bi_encoded = codes::VariableBytes(n_strings);
+        auto bi_encoded = codes::VariableBytes(n_strings); // encode the number to strings
 
-        teletype.write((char*)bi_encoded.bytes, bi_encoded.used_bytes);
+        teletype.write((char*)bi_encoded.bytes, bi_encoded.used_bytes); // write ecoded bytes
 
         for(auto cValue : compressed_values)
-            teletype.write((char*)cValue.bytes, cValue.used_bytes);
+            teletype.write((char*)cValue.bytes, cValue.used_bytes); // write compressed values
         
-        current_bytes = bi_encoded.used_bytes + cvals_size;
+        current_bytes = bi_encoded.used_bytes + cvals_size; // Update current bytes
     }
 
 public:
+	// constructor
 	disk_map_writer() = delete;
+	// Constructor initializes the disk_map_writer object with the output stream and metadata block offset.
     explicit disk_map_writer(std::ostream& teletype):
         teletype(teletype)
     {
-        metadata_block_off = teletype.tellp();
-        teletype.seekp(B, std::ios_base::cur);
+        metadata_block_off = teletype.tellp(); // get offset for metadata block
+        teletype.seekp(B, std::ios_base::cur); // move stream position
     }
-
+	// Function to add a key-value pair
     void add(const std::pair<std::string, Value>& p) {add(p.first, p.second);}
 
+	// Adds a key-value pair to the disk map:
+	// - Compresses values and manages block creation based on keys and their sizes.
+	// - Handles block creation, update, and size calculations.
     void add(const std::string& key, const Value& value)
     {
 		assert(not key.empty() and key > debug_last_string and key.size() < 255);
-		debug_last_string = key;
+		debug_last_string = key; // Update debug information
 
 		// Create compressed_values as an array or vector based on the value of N
         std::conditional_t<(N == 0), std::vector<codes::VariableBytes>, std::array<codes::VariableBytes, N>> compressed_values;
         if constexpr (N != 0)
         {
+			// generate compressed values based on Value type
             if constexpr (std::is_integral_v<Value>)
                 compressed_values[0] = codes::VariableBytes(value);
             else if constexpr (is_std_array_v<Value>)
@@ -114,11 +127,11 @@ public:
 				compressed_values.begin(), compressed_values.end(), 0,
 				[](size_t sum, const auto& cValue) { return sum + cValue.used_bytes; });
 
-		// First call to add()
+		// If it's the first call to add()
         if(heads.empty())
         {
-			new_block(key, compressed_values, total_used_bytes);
-			n_strings += 1;
+			new_block(key, compressed_values, total_used_bytes); // create a new block
+			n_strings += 1; // increment total strings
             return;
         }
 
@@ -128,29 +141,30 @@ public:
 
         if(current_bytes + sizeof(common_len) + diff_len + total_used_bytes > B)
         {
-			new_block(key, compressed_values, total_used_bytes);
-			n_strings += 1;
+			new_block(key, compressed_values, total_used_bytes); // create a new block
+			n_strings += 1; // increment total strings
             return;
         }
 
-		n_strings += 1;
-        teletype.write((char*)&common_len, sizeof(common_len));
-        teletype.write(key.c_str() + common_len, diff_len);
+		n_strings += 1; // increment total strings
+        teletype.write((char*)&common_len, sizeof(common_len)); // write common length
+        teletype.write(key.c_str() + common_len, diff_len); // write differing part of the key
             
         for(auto cValue : compressed_values)
-            teletype.write((char*)cValue.bytes, cValue.used_bytes);
+            teletype.write((char*)cValue.bytes, cValue.used_bytes); // write compressed values
 
-        current_bytes += sizeof(common_len) + diff_len + total_used_bytes;
+        current_bytes += sizeof(common_len) + diff_len + total_used_bytes; // update current bytes
     }
-
+	// Finalizes the storage structure:
+	// - Writes metadata and heads, updating the stream to prepare for disk storage.
     void finalize()
     {
         // Write the array of heads and save their offset
         align_stream_to_block(teletype);
 
-		uint64_t offset_heads = teletype.tellp();
+		uint64_t offset_heads = teletype.tellp(); // calculate offset for heads
         for(auto& head_str : heads)
-            teletype.write(head_str.c_str(), head_str.size() + 1);
+            teletype.write(head_str.c_str(), head_str.size() + 1); // write heads to stream
 
         // Write the metadata block
         teletype.seekp(metadata_block_off, std::ios_base::beg);
@@ -161,14 +175,16 @@ public:
         uint64_t n_blocks = heads.size();
         teletype.write((char*)&n_blocks, sizeof(uint64_t));
 
-        teletype.flush();
+        teletype.flush(); // flush the stream
     }
 
 };
 
 
 /**
- * Merges multiple sorted ranges into a single one disk_map
+ * merge function combines multiple sorted ranges into a single disk map efficiently.
+ * - Merges sorted ranges from various input iterators into a single disk map.
+ * - Handles merging values with the same key based on user-defined merge policies.
  * @tparam Value
  * @tparam InputIterator
  * @tparam B
@@ -178,6 +194,8 @@ public:
  * @param merge_policy
  * @param trasform_f
  */
+
+
 template<class Value, class InputIterator, size_t B = BLOCK_SIZE, class T = Value>
 void merge(
 		std::ostream &out_stream,
@@ -195,6 +213,7 @@ void merge(
 			std::is_same_v<typename InputIterator::value_type, typename std::pair<std::string,T>>,
 			"Check trasform_f input type");
 
+	// Struct to store position information of iterators
 	struct pos
 	{
 		InputIterator curr, end;
@@ -204,9 +223,11 @@ void merge(
 	std::list<pos> positions;
 	disk_map_writer<Value, B> global(out_stream);
 
+	// Initialize positions with iterators from input maps
 	for (auto& [begin, end] : maps)
 		positions.push_back({begin, end});
 
+	// Merge operation
 	while(not positions.empty())
 	{
 		std::string min;
@@ -245,7 +266,7 @@ void merge(
 		global.add(min, merged);
 	}
 
-	global.finalize();
+	global.finalize(); // Finalize writing to disk
 }
 
 }
