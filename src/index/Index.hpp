@@ -26,6 +26,7 @@ struct DocumentInfo
 /**
  * This class represents the index and is used to access the documents'
  * information regarding the terms they contain and their frequencies.
+ * @tparam LVT The type of the lexicon value.
  */
 template<class LVT = LexiconValue>
 class Index{
@@ -34,21 +35,21 @@ public:
 	using global_lexicon_t = codes::disk_map<freq_t>;
 
 private:
-	docid_t base_docid;
-	size_t n_docs;
-	double avgdl;
+	docid_t base_docid; // The base docid, used to compute the docno offset
+	size_t n_docs; // The number of documents in the collection
+	double avgdl; // The average document length
 
-	local_lexicon_t local_lexicon;
+	local_lexicon_t local_lexicon; 
 	global_lexicon_t& global_lexicon;
 
-	const uint8_t *inverted_indices;
-	size_t inverted_indices_length;
+	const uint8_t *inverted_indices; 
+	size_t inverted_indices_length; 
 
 	const uint8_t *inverted_indices_freqs;
 	size_t inverted_indices_freqs_length;
 
 	// Document index
-	const DocumentInfoSerialized *document_index;
+	const DocumentInfoSerialized *document_index; 
 	size_t document_index_length;
 
 	// A series of docno strs, the offsets are written in document_index's elements
@@ -75,6 +76,12 @@ private:
 	// be popped
 	using pending_results_t = std::priority_queue<pending_result_t, std::vector<pending_result_t>, std::greater<>>;
 
+	/**
+	 * Convert the pending results into a vector of results.
+	 * @param results The pending results.
+	 * @param top_k The number of top results to be returned.
+	 * @return A vector of results.
+	 */
 	std::vector<result_t> convert_results(pending_results_t& results, size_t top_k)
 	{
 		// Build results
@@ -98,6 +105,7 @@ private:
 		return final_results;
 	}
 public:
+
 	/**
 	 * @param lx the local lexicon
 	 * @param gx the global lexicon
@@ -115,6 +123,9 @@ public:
 	std::vector<result_t> query(std::set<std::string> query, bool conj = false, size_t top_k = 10);
 	std::vector<result_t> query_bmm(std::set<std::string> query, size_t top_k = 10);
 
+	/**
+	 * This class represents a posting list and is used to iterate over it.
+	 */
 	class PostingList
 	{
 		using docid_decoder_t = codes::VariableBlocksDecoder<const uint8_t*>;
@@ -149,6 +160,8 @@ public:
 					parent(parent), current_block_it(current_block_it), docid_curr(docid_curr), freq_curr(freq_curr)
 			{}
 
+			// Since skip_block is only used in the skip list specialization, we can abort if it is called in the
+			// generic one
 			void skip_block() {abort();};
 		public:
 
@@ -194,7 +207,7 @@ public:
 		iterator begin() const;
 		iterator end() const;
 
-		/** This stuff assumes that the freq decoder's begin is aligned (ie its offset is 0) */
+		/** This stuff assumes that the freq decoder's begin is aligned (i.e. its offset is 0) */
 		offset get_offset(const iterator&);
 		const LVT& get_lexicon_value() const {return lv;}
 	};

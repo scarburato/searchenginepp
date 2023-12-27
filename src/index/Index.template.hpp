@@ -43,6 +43,12 @@ Index<LVT>::~Index()
 
 }
 
+/**
+ * This function is used to create a list of PostingListHelper from the query terms.
+ * @param results The internal representation of the results.
+ * @param top_k The number of results to return.
+ * @return The external representation of the results.
+ */
 template<class LVT>
 std::pair<std::list<typename Index<LVT>::PostingListHelper>, docid_t> Index<LVT>::build_helpers(std::set<std::string> &query, bool conj)
 {
@@ -82,6 +88,13 @@ std::pair<std::list<typename Index<LVT>::PostingListHelper>, docid_t> Index<LVT>
 	return {std::move(posting_lists_its), docid_base};
 }
 
+/**
+* Function responsible for the DAAT algorithm for query processing.
+* @param query The query to be processed.
+* @param conj If true, the query is processed in conjunctive mode.
+* @param top_k The number of top results to be returned.
+* @return A vector of results.
+*/
 template<class LVT>
 std::vector<result_t> Index<LVT>::query(std::set<std::string> query, bool conj, size_t top_k)
 {
@@ -180,6 +193,13 @@ typename Index<LVT>::PostingList::iterator Index<LVT>::PostingList::end() const
 	return {this, docid_dec.end(), freq_dec.end()};
 }
 
+/**
+ * This function is used to compute the score of a document.
+ * The choice of the scorer changes the formula between TF-IDF and BM25.
+ * @param it The iterator of the document to be scored.
+ * @param scorer The scorer to be used.
+ * @return The score of the document.
+ */
 template<class LVT>
 score_t Index<LVT>::PostingList::score(const Index::PostingList::iterator& it, const QueryScorer& scorer) const
 {

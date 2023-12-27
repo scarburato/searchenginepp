@@ -3,7 +3,15 @@
 
 namespace sindex
 {
+
+
 template<>
+/**
+* Function responsible for the BMM algorithm for query processing.
+* @param query The query to be processed.
+* @param top_k The number of top results to be returned.
+* @return A vector of results.
+*/
 std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> query, size_t top_k)
 {
 	// Top-K results. This is a min queue (for that we use std::greater, of course), so that the minimum element can
@@ -21,7 +29,7 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 		return scorer.get_sigma(a.pl.get_lexicon_value()) < scorer.get_sigma(b.pl.get_lexicon_value());
 	});
 
-	// Initialize the ubber bounds vector
+	// Initialize the upper bounds vector
 	upper_bounds.push_back(scorer.get_sigma(posting_lists_its.begin()->pl.get_lexicon_value()));
 	for(auto it = posting_lists_its.begin(); it != posting_lists_its.end(); ++it)
 	{
@@ -42,6 +50,7 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 		for(size_t i = 0; i < pivot; ++i)
 			++p_it;
 
+		// Score the essential list
 		for(auto i = pivot; i < posting_lists_its.size(); ++i, ++p_it)
 		{
 			if(p_it->it->first == curr_docid)
@@ -66,6 +75,7 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 				bub[i] = bub[i - 1] + scorer.get_sigma(p_it->it.get_current_skip_block());
 			}
 			
+			// Score the non essential list, if the score is less than the bub we skip the block
 			for(size_t j = 0; j < pivot; ++j)
 			{
 				size_t i = pivot - j - 1;
@@ -94,7 +104,7 @@ std::vector<result_t> Index<SigmaLexiconValue>::query_bmm(std::set<std::string> 
 				++pivot;
 		}
 
-		// Removed the exasthed posting lists
+		// Removed the exhausted posting lists
 		size_t j = 0;
 		for(auto p_it = posting_lists_its.begin(); p_it != posting_lists_its.end();)
 		{
@@ -179,6 +189,9 @@ void Index<SigmaLexiconValue>::PostingList::iterator::nextGEQ(sindex::docid_t do
 		++*this;
 }
 
+/**
+* Skip block implementation for sigma lexicon.
+*/
 template<>
 void Index<SigmaLexiconValue>::PostingList::iterator::skip_block()
 {
@@ -189,6 +202,7 @@ void Index<SigmaLexiconValue>::PostingList::iterator::skip_block()
 	if(current_block_it == parent->lv.skip_pointers.end())
 		return;
 
+	// Update docid and freq iterators only if we haven't reached the end
 	docid_curr = parent->docid_dec.at(current_block_it->docid_offset);
 	auto freq_off = codes::deserialize_bit_offset(current_block_it->freq_offset);
 	freq_curr = parent->freq_dec.at(freq_off.first, freq_off.second);
