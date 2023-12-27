@@ -1,6 +1,3 @@
-//
-// Created by ricky on 10/11/23.
-//
 #pragma once
 #include <algorithm>
 #include <string>
@@ -17,6 +14,11 @@
 namespace codes
 {
 
+/**
+ * Disk-based map reader
+ * @tparam Value type of the values
+ * @tparam B block size
+ */
 template<class Value, size_t B = BLOCK_SIZE>
 class disk_map{
 private:
@@ -43,6 +45,12 @@ private:
 			return Value::serialize_size;
 	}();
 
+	/**
+	 * Compares two pairs of strings
+	 * @param a first pair
+	 * @param b second pair
+	 * @return true if a < b, false otherwise
+	 */
 	static bool compare(const std::pair<const char*, size_t>& a, const std::pair<const char*, size_t>& b) {
 		return std::strcmp(a.first, b.first) < 0;
 	}
@@ -73,6 +81,7 @@ public:
         	std::conditional_t<(N == 0), std::vector<uint64_t>, std::array<uint64_t, N>> values;
 
 			size_t numbers;
+			// If N is equal to 0, we are reading a variable number of integers
 			if constexpr (N != 0)
 				numbers = N;
 			else
@@ -82,6 +91,7 @@ public:
 				offset += compressed_size.second;
 			}
 
+			// Read all integers
 			for(size_t i = 0; i < numbers; i++)
 			{
 				auto t = codes::VariableBytes::parse(parent.cblocks_base + offset);
@@ -92,7 +102,7 @@ public:
 					values.push_back(t.first);
 			}
 
-			// If integral
+			// Assign values to current.second
 			if constexpr (std::is_integral_v<Value>)
 				current.second = values[0];
 			else if constexpr (is_std_array_v<Value>)
@@ -109,13 +119,13 @@ public:
 		 */
 		void parse(size_t offset)
 		{
-			// two cases: not first element of block
+			// Two cases: not first element of block
 			if(offset % B != 0)
 			{
 				// First element of non-block start: the common prefix's length
 				size_t prefix_len = *(parent.cblocks_base + offset++);
 
-				// then we can compute the complete key string
+				// Then we can compute the complete key string and save it
 				auto postfix = std::string((char *)parent.cblocks_base + offset);
 				auto new_str =
 						std::string(parent.index_string[current_block].first).substr(0, prefix_len)
@@ -124,12 +134,13 @@ public:
 				assert(new_str > current.first and new_str.size() < 255 and not current.first.empty());
 				current.first = std::move(new_str);
 
+				// Move offset to the end of the string
 				offset += postfix.size() + 1;
 
 				// Finally a sequence of values
 				parse_value(offset);
 			}
-			else // first element of block
+			else // First element of block
 			{
 				// First block: b_i
 				// First element of a block is the encoded index of the block's head. We
@@ -137,24 +148,26 @@ public:
 				auto t = codes::VariableBytes::parse(parent.cblocks_base + offset);
 				offset += t.second;
 
-				// then a sequence of values associated to the block-head's key
+				// Then a sequence of values associated to the block-head's key
 				parse_value(offset);
 
-				// current_key is retrieved from the vector
+				// Current_key is retrieved from the vector
 				current_block++;
 				current.first = parent.index_string[current_block].first;
 
-				// For debug release: check if indexes are still aligned
+				// For debug release: check if indices are still aligned
 				assert(t.first == index);
 				assert(t.first == parent.index_string[current_block].second);
 			}
 
-			// If next o(s_b_j, s_(i+1)) == 0 and P(i+1) = '\0'
-			// then block finished early. We must align ourselves to next
+			// Determine if the current offset marks the end of a block and calculates the offset to the next datum accordingly. 
+			// If the offset is not at the end of a block, it checks if the next offset indicates the end of a block and adjusts 
+			// the offset accordingly.
 			if(offset % B != 0 and (
 					(offset + 1) % B == 0 or
-					(offset + 2) % B == 0 or (
-							*(parent.cblocks_base + offset) == 0x00 and *(parent.cblocks_base + offset + 1) == 0x00)))
+					(offset + 2) % B == 0 or 
+					(*(parent.cblocks_base + offset) == 0x00 and *(parent.cblocks_base + offset + 1) == 0x00))
+					)
 				offset_to_next_datum = offset + (B - (offset % B));
 			else
 				offset_to_next_datum = offset;
@@ -170,16 +183,6 @@ public:
 				parse(offset_to_datum);
 			}
 		}
-
-		/*iterator& operator=(const iterator& it2)
-		{
-			parent = it2.parent;
-			offset_to_datum = it2.offset_to_datum;
-			offset_to_next_datum = it2.offset_to_next_datum;
-			index = it2.index;
-			current_block = it2.index;
-			current = it2.current;
-		}*/
 
 		iterator& operator++()
 		{
@@ -267,6 +270,10 @@ public:
 
 	size_t size() const {return metadata->M;}
 
+	/**
+	 * Constructor
+	 * @param memory memory area
+	 */
 	explicit disk_map(memory_area& memory)
 	{
 		auto lexicon_minfo = memory.get();
