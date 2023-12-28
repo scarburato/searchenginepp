@@ -22,6 +22,11 @@ WordNormalizer::~WordNormalizer()
 	sb_stemmer_delete(stemmer);
 }
 
+/*
+   'normalize' is responsible for preparing a given string for tokenization.
+   It potentially fixes an encoding error for MS MARCO Latin1, removes punctuation, and returns a TokenStream object
+   initialized with the normalized string and a reference to the current WordNormalizer instance.
+*/
 WordNormalizer::TokenStream WordNormalizer::normalize(std::string str)
 {
 #ifdef FIX_MSMARCO_LATIN1

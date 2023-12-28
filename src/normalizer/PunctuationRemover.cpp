@@ -154,8 +154,12 @@ static int remove_punctuation_handler (
 	return 0;
 }
 
+
 void remove_punctuation(std::string &str)
 {
+	/*
+	 It uses hs_scan from the Hyperscan library to scan the provided str string for patterns related to punctuation.
+	 */
 	auto ret = hs_scan(
 			hyperscan.hs_pun_db,
 			str.c_str(), str.size(),

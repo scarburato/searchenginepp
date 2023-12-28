@@ -6,12 +6,19 @@ namespace sindex
 {
 
 /**
-* Function that writes to disk the inverted index
+* The following code defines the 'write_to_disk' function, which writes the inverted index, document IDs, frequencies, lexicon, and document index to their respective output streams.
+* Explanation:
+- The function iterates through the inverted index ('inverted_index') to save compressed docIDs and calculates their offsets for later use.
+- It encodes frequencies using Variable Bytes and Unary Encoding for efficient storage.
+- Writes the document index structure and string section to the output streams.
+- Utilizes a 'disk_map_writer' to write the lexicon data to disk.
+NB: This function is responsible for persisting the index data onto disk in compressed and structured forms.
 * @param docid_teletype stream in which the docids are saved
 * @param freq_teletype stream in which the frequencies are saved
 * @param lexicon_teletype stream in which the lexicon is saved
 * @param document_index_teletype stream in which the document index is saved
 */
+
 void IndexBuilder::write_to_disk(std::ostream& docid_teletype, std::ostream& freq_teletype, std::ostream& lexicon_teletype, std::ostream& document_index_teletype)
 {
 	std::vector<struct LexiconValue> lexicon_vector;

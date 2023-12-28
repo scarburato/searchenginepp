@@ -3,12 +3,7 @@
 
 namespace sindex
 {
-/*
-   The 'tab64' array holds precomputed values for fast calculation of log2_64.
-   Each value in the array represents the index of the highest set bit in a 6-bit binary number.
-   This array allows quick lookup for log2_64 computation by using the index as the input.
-   For instance, if the input is '4', the value in tab64[4] = 22, which means log2_64(4) = 22.
-*/
+// Lookup table for a custom logarithm base-2 calculation for 64-bit unsigned integers
 static const int tab64[64] = {
 		63,  0, 58,  1, 59, 47, 53,  2,
 		60, 39, 48, 27, 54, 33, 42,  3,
@@ -19,17 +14,8 @@ static const int tab64[64] = {
 		56, 45, 25, 31, 35, 16,  9, 12,
 		44, 24, 15,  8, 23,  7,  6,  5};
 
-/*
-   The function 'log2_64' calculates the logarithm base 2 of a 64-bit unsigned integer value.
-   The function uses bitwise operations to find the position of the highest set bit in 'value'.
-
-   The steps include setting all bits below the highest set bit to 1 and then indexing into 'tab64'
-   to find the position of the highest bit, which corresponds to log2 of the value.
-
-   Example:
-   For instance, if 'value' is 16 (binary 10000), the highest set bit is at position 4 (from the right).
-   The function will return tab64[4] = 22, indicating log2_64(16) = 22.
-*/
+// Function to calculate log base 2 of a 64-bit unsigned integer value
+// It performs bitwise operations to find the most significant bit of the given 'value'
 [[maybe_unused]] static int log2_64 (uint64_t value)
 {
 	value |= value >> 1;
@@ -38,6 +24,8 @@ static const int tab64[64] = {
 	value |= value >> 8;
 	value |= value >> 16;
 	value |= value >> 32;
+	// Uses a lookup table 'tab64' to find the most significant bit position
+	// Shifts the calculated value to get the logarithm base 2
 	return tab64[((uint64_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
 }
 
