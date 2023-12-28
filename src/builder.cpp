@@ -65,6 +65,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 			term_freqs[term]++;
 		}
 
+		// Compute doc_len
 		auto doc_len = std::accumulate(term_freqs.begin(), 
 												term_freqs.end(), (sindex::doclen_t)0,
 												[](sindex::freq_t sum, const auto& pair) {
@@ -98,8 +99,10 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 	if(not std::filesystem::exists(out_dir/base_name))
 		std::filesystem::create_directory(out_dir/base_name);
 
+	// Specify the output files on which we'll write
 	auto pl_docids = std::ofstream(out_dir/base_name/"posting_lists_docids", std::ios_base::binary);
 	auto pl_freqs = std::ofstream(out_dir/base_name/"posting_lists_freqs", std::ios_base::binary);
+	// lexicon_temp because we have to calculate the sigmas
 	auto lexicon = std::ofstream(out_dir/base_name/"lexicon_temp", std::ios_base::binary);
 	auto doc_index = std::ofstream(out_dir/base_name/"document_index", std::ios_base::binary);
 
@@ -107,6 +110,7 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 
 	indexBuilder.write_to_disk(pl_docids, pl_freqs, lexicon, doc_index);
 
+	// Print some stats
 	const auto stop_time = std::chrono::steady_clock::now();
 	std::cout
 		<< "Chunk " << chunk_n
@@ -116,6 +120,10 @@ static void process_chunk(std::shared_ptr<std::vector<doc_tuple_t>> chunk, sinde
 		<< " ( " << (stop_time - start_time)/1s << "s elapsed)" << std::endl;
 }
 
+/**
+ * This function merges all the local lexica into a global one
+ * @param out_dir the directory where the index is stored
+ */
 void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	std::ofstream lexicon_teletype(out_dir / "global_lexicon", std::ios::binary);
 
@@ -130,6 +138,7 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	std::vector<std::unique_ptr<lexicon_temp>> lexica;
 	lexica.reserve(index_folders_paths.size());
 
+	// Map all lexica
 	for(const auto& db_path : index_folders_paths)
 	{
 		memory_mmap lexicon_mmap(db_path/"lexicon_temp");
@@ -148,7 +157,9 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	for(const auto& lexicon : lexica)
 		ranges.emplace_back(lexicon->lexicon.begin(), lexicon->lexicon.end());
 
+	// Extract the n_docs field from a LexiconValue object
 	const auto filter_f = [](const sindex::LexiconValue& v) -> sindex::freq_t {return v.n_docs;};
+	// Sum all the freqs
 	const auto merge_f = []([[maybe_unused]] const std::string& key, const std::vector<sindex::freq_t>& values) {
 		return std::accumulate(values.begin(), values.end(), (sindex::freq_t)0);
 	};
@@ -158,6 +169,11 @@ void write_global_lexicon_to_disk_map(const std::filesystem::path& out_dir) {
 	lexicon_teletype.flush();
 }
 
+/**
+ * This function writes the metadata file
+ * @param out_dir the directory where the index is stored
+ * @param ndocs the number of documents in the collection
+ */
 void write_metadata(const std::filesystem::path& out_dir, const size_t ndocs) {
 	std::ofstream metadata(out_dir / "metadata", std::ios::binary);
 	metadata.write((char*)&global_doc_len_sum, sizeof(sindex::doclen_t));
@@ -190,6 +206,7 @@ std::pair<size_t, std::string> write_sigma_lexicon(const std::filesystem::path& 
 
 	codes::disk_map_writer<sindex::SigmaLexiconValue> sigma_lexicon_writer(sigma_lexicon);
 
+	// For each term in the local lexicon
 	for(const auto& [term, lv] : index_worker.index.get_local_lexicon())
 	{
 		sindex::SigmaLexiconValue slv = lv;
@@ -200,6 +217,7 @@ std::pair<size_t, std::string> write_sigma_lexicon(const std::filesystem::path& 
 		auto pl_it = pl.begin();
 		auto pl_curr_block_off = pl.get_offset(pl_it);
 
+		// Build a skip pointer
 		auto build_skip = [&](const auto& docid) {
 			current_skip.last_docid = docid;
 			current_skip.docid_offset = pl_curr_block_off.docid_off;
@@ -242,6 +260,8 @@ std::pair<size_t, std::string> write_sigma_lexicon(const std::filesystem::path& 
 		sum_skip_list_len += slv.skip_pointers.size();
 		n_skip_lists += 1;
 	}
+
+	// Write the final informations on the disk
 	sigma_lexicon_writer.finalize();
 
 	return max_skip_list_len;
@@ -264,7 +284,7 @@ int main(int argc, char** argv)
 
 	std::filesystem::create_directory(out_dir);
 
-	// VROOOOOM STANDARD IO
+	// Disable synchronization with C I/O
 	std::ios_base::sync_with_stdio(false);
 	std::cin.tie(nullptr);
 

@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
 	std::list<index_worker_t<sindex::SigmaLexiconValue>> indices;
 
-	// VROOOOOM STANDARD IO
+	// Disable sync with stdio, we don't need it
 	std::ios_base::sync_with_stdio(false);
 
 	// Select the scorer
@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 	// Workers
 	thread_pool tp(options.thread_count);
 
-	// Leggi righe da stdin fintanto EOF
+	// Read lines from stdin until EOF
 	auto read_interactive = [&]() -> bool {
 		std::cout << ++q_id << ") Waiting for input: ";
 		return (bool)std::getline(std::cin, query);
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 		// bench stuff
 		const auto start_time = std::chrono::steady_clock::now();
 
-		// Tokenizza la query
+		// Tokenize the query
 		std::set<std::string> tokens;
 		auto terms = wn.normalize(query);
 		while(true)
@@ -120,6 +120,7 @@ int main(int argc, char** argv)
 		for(size_t i = 0; i < indices.size(); ++i)
 			merged_results.insert(merged_results.end(), results[i].begin(), results[i].end());
 
+		// Sort them
 		std::sort(merged_results.begin(), merged_results.end(), std::greater<>());
 		if(merged_results.size() > options.k)
 			merged_results.resize(options.k); // top-k results
