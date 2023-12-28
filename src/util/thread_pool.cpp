@@ -26,6 +26,7 @@ thread_pool::~thread_pool()
 		worker.join();
 }
 
+// Add a job to the queue
 void thread_pool::add_job(const Task&& job)
 {
 	std::lock_guard queue_lock{jobs_queue_mutex};

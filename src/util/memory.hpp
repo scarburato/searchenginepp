@@ -12,6 +12,9 @@ public:
 	virtual std::pair<uint8_t *, size_t> get() const = 0;
 };
 
+/**
+ * This class is used to map a file in memory
+ */
 class memory_mmap: public memory_area
 {
 	uint8_t *buff;
@@ -23,6 +26,9 @@ public:
 	std::pair<uint8_t *, size_t> get() const override;
 };
 
+/**
+ * This class is used to map a buffer in memory
+ */
 class memory_buffer: public memory_area
 {
 	uint8_t *buff;

@@ -7,6 +7,10 @@
 #include <mutex>
 #include <condition_variable>
 
+/**
+ * Implements a thread pool to run jobs in parallel
+ * This helps to build the index more quickly
+*/
 class thread_pool
 {
 	using Task = std::function<void()>;

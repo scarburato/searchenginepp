@@ -7,20 +7,20 @@
 /**
  * This procedure mmaps a file in memory
  * @param filename
- * @return
+ * @return a pair containing the pointer to the mapped file and its size
  */
 static std::pair<void*, size_t> mmap_helper(char const *const filename)
 {
 	auto fd = open(filename, O_RDONLY);
 
-	// get file's size
+	// Get file's size
 	struct stat st{};
 	auto ret_stat= stat(filename, &st);
 
 	if(ret_stat == -1)
 		abort();
 
-	// map file in memory
+	// Map file in memory
 	void* mapped = (uint8_t *)mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
 	close(fd);

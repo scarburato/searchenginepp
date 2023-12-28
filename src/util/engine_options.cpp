@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include "engine_options.hpp"
 
+// Used to tweak the engine's behaviour based on command line arguments
 engine_options::engine_options(int argc, char **argv)
 {
 	static const option long_options[] = {
