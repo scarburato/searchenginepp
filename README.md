@@ -4,6 +4,8 @@
 
 A C++ program that creates an inverted index structure from a set of text documents and a program that processes queries over such inverted index.
 
+📖 Report avaibile here: [report.pdf](report.pdf) 
+
 ## Clone the Repository
 
 To clone the repository, use the following command:
